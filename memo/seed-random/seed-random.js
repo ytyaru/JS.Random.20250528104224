@@ -1,21 +1,29 @@
 (function(){
+class Num32 {
+    static u2i(N) {return (0x7FFFFFFF<N) ? N-0x100000000 : N} // uint to int
+    static i2u(N) {return (0x7FFFFFFF<N) ? N-0x100000000 : N} // int to uint
+}
+
 class Xorshift32{  // 1 ~ 4294967295
     constructor(seed){
-        if (!Number.isSafeInteger(seed)){seed = new Date().getTime()}
-        this.uinttoint = (num)=> (0x7FFFFFFF<num) ? num-0x100000000 : num ;
-        this.inttouint = (num)=> (num<0) ? num+0x100000000 : num ;
-        this.s = this.uinttoint(seed);
+//        this.uinttoint = (num)=> (0x7FFFFFFF<num) ? num-0x100000000 : num ;
+//        this.inttouint = (num)=> (num<0) ? num+0x100000000 : num ;
+//        if (!Number.isSafeInteger(seed)){seed = new Date().getTime(); seed = this.inttouint(seed);}
+        if (!Number.isSafeInteger(seed)){seed = new Date().getTime(); seed = Num32.i2u(seed);}
+//        this.s = this.uinttoint(seed);
+        this.s = Num32.u2i(seed)
     }
     next() {
         this.s ^= this.s<<13;
         this.s ^= this.s>>>17;
         this.s ^= this.s<<5;
-        return this.inttouint(this.s);
+        //return this.inttouint(this.s);
+        return Num32.i2u(this.s);
     }
-    get I() {return this.next()}
-    get R() {return this.next() / (0xFFFFFFFF + 1)}
-    *Is(n=3) {for(let i=0; i<n; i++){yield (this.next())}}
-    *Rs(n=3) {for(let i=0; i<n; i++){yield (this.next())}}
+    get i() {return this.next()}
+    get r() {return this.next() / (0xFFFFFFFF + 1)}
+    *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
+    *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
 //    *Is(n) {yield this.next()}
 //    *Rs(n) {yield this.next()}
     // 無限ループ
@@ -23,22 +31,49 @@ class Xorshift32{  // 1 ~ 4294967295
 }
 class Xorshift128{  // 1/0/0/0 ~ 4294967295
     constructor(x, y, z, w){
-        if (!Number.isSafeInteger(seed)){seed = new Date().getTime()}
-        this.uinttoint =(num)=> (0x7FFFFFFF<num) ? num-0x100000000 : num ;
-        this.inttouint =(num)=> (num<0) ? num+0x100000000 : num ;
-        this.x =this.uinttoint(x), this.y =this.uinttoint(y), this.z =this.uinttoint(z), this.w =this.uinttoint(w);
+//        this.uinttoint =(num)=> (0x7FFFFFFF<num) ? num-0x100000000 : num ;
+//        this.inttouint =(num)=> (num<0) ? num+0x100000000 : num ;
+        /*
+        if ([x,y,z,w].every(v=>Number.isSafeInteger(v)))) {
+            this.x = Num32.u2i(x); this.y = Num32.u2i(y); this.z = Num32.u2i(z); this.w = Num32.u2i(w);
+        } else {
+            const r32 = new Xorshift32();
+            const [X,Y,Z,W] = [x,y,z,w].map(v=>Num32.u2i(Number.isSafeInteger(v) ? v : r32.i));
+            this.x = X; this.y = Y; this.z = Z; this.w = W;
+        }
+        */
+        //[x,y,z,w].every(v=>Number.isSafeInteger(v))) ? [x,y,z,w] : r32.i
+        //[x,y,z,w].map(v=>Number.isSafeInteger(v) ? v : r32.i))
+        const r32 = new Xorshift32();
+        //this.x =this.uinttoint(x), this.y =this.uinttoint(y), this.z =this.uinttoint(z), this.w =this.uinttoint(w);
+        //const [X,Y,Z,W] = [x,y,z,w].map(v=>this.uinittoint(Number.isSafeInteger(v) ? v : new Date().getTime()));
+        //const [X,Y,Z,W] = [x,y,z,w].map(v=>this.uinittoint(Number.isSafeInteger(v) ? v : new Date().getTime()));
+        //const [X,Y,Z,W] = [x,y,z,w].map(v=>this.uinttoint(Number.isSafeInteger(v) ? v : r32.i));
+        const [X,Y,Z,W] = [x,y,z,w].map(v=>Num32.u2i(Number.isSafeInteger(v) ? v : r32.i));
+        this.x = X; this.y = Y; this.z = Z; this.w = W;
+        /*
+        */
     }
     next(){
         let t = this.x^(this.x<<11);
         this.x =this.y, this.y =this.z, this.z =this.w;
         this.w = (this.w^(this.w>>>19))^(t^(t>>>8));
-        return this.inttouint(this.w);
+        //return this.inttouint(this.w);
+        return Num32.i2u(this.w);
     }
+    get i() {return this.next()}
+    get r() {return this.next() / (0xFFFFFFFF + 1)}
+    *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
+    *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
 }
 class Xoroshiro128pp{  // 1/1/1/1 ~ 4294967295
     constructor(s0, s1, s2, s3){
-        s0 = BigInt.asUintN(32, BigInt(s0)), s1 =BigInt.asUintN(32, BigInt(s1));
-        s2 = BigInt.asUintN(32, BigInt(s2)), s3 =BigInt.asUintN(32, BigInt(s3));
+        const r32 = new Xorshift32();
+        const [X,Y,Z,W] = [s0,s1,s2,s3].map(v=>Num32.u2i(Number.isSafeInteger(v) ? v : r32.i));
+        s0 = BigInt.asUintN(32, BigInt(X)), s1 = BigInt.asUintN(32, BigInt(Y));
+        s2 = BigInt.asUintN(32, BigInt(Z)), s3 = BigInt.asUintN(32, BigInt(W));
+//        s0 = BigInt.asUintN(32, BigInt(s0)), s1 =BigInt.asUintN(32, BigInt(s1));
+//        s2 = BigInt.asUintN(32, BigInt(s2)), s3 =BigInt.asUintN(32, BigInt(s3));
         this.s = [s1<<32n |s0, s3<<32n |s2];
     }
     rotl(big, num){
@@ -52,7 +87,8 @@ class Xoroshiro128pp{  // 1/1/1/1 ~ 4294967295
         this.s[1] = this.rotl(s1, 28);
         return [Number(BigInt.asUintN(32, result)), Number(BigInt.asUintN(32, result>>32n))];
     }
-    I() {
+    get i() {return this.next()}
+    get I() {
         let s0 =this.s[0], s1 =this.s[1];
         let result = this.rotl(s0+s1, 17)+s0;
         s1 ^= s0;
@@ -61,6 +97,11 @@ class Xoroshiro128pp{  // 1/1/1/1 ~ 4294967295
         //return [Number(BigInt.asUintN(32, result)), Number(BigInt.asUintN(32, result>>32n))];
         return result;
     }
+    //get r() {return this.I / 18446744073709551616n} // 2^64-1/2^64
+    get r() {const v = this.next(); return v.reduce((s,V)=>s+(V / (0xFFFFFFFF + 1)),0) / v.length;} // 2^64-1/2^64
+    *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
+    *Is(n=3) {for(let i=0; i<n; i++){yield this.I}}
+    *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
     jump(long=false){
         const JUMP = long ? [0x360FD5F2CF8D5D99n,0x9C6E6877736C46E3n] : [0x2BD7A6A6E99C2DDCn,0x0992CCAF6A6FCA05n] ;
         let s0 =0n, s1 =0n;
