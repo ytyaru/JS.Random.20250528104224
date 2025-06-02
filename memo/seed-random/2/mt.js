@@ -124,10 +124,7 @@ class MersenneTwister {// メルセンヌ・ツイスタ 高品質な疑似乱�
     get i() {return this.nextInt()} // 0〜2^32-1
     get MIN() {return 0}
     get MAX() {return 4294967295} // 2**32-1
-    fromLength(l,s=0) {
-        const S = s;
-        const E = MersenneTwister._toNumber(arguments[0]);
-
-    }
+    fromLength(l,s=0) {return this.nextInt(s, l);} // s〜l-1迄
+    fromRange(s,e) {return this.nextInt(s, e+1);} // s〜e迄
 }
 
