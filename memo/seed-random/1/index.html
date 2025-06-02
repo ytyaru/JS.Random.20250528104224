@@ -1,0 +1,62 @@
+<meta charset="UTF-8">
+<script src="mt.js"></script>
+<script src="seed-random.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    /*
+    function testDistribution(fn) { // 0〜4迄の5整数を1000回取得してその分布を見る
+        const count = [0,0,0,0,0];
+        fn() * count.length;
+    }
+    */
+    const seed = 123;
+    console.log('Xorshift32')
+    const r32 = new SeedRandom.Xorshift32(seed);
+    console.log(r32.next());
+    console.log(r32.i);
+    console.log(r32.r);
+    console.log([...r32.is()]);
+    console.log([...r32.is(5)]);
+    console.log([...r32.rs()]);
+    console.log([...r32.rs(5)]);
+//    console.log(r32.is());
+//    console.log(r32.rs());
+//    for (let v of r32) {console.log(v)}
+//    console.log([...new Array(5)].map(_=>r32.is()));
+//    console.log([...new Array(5)].map(_=>r32.rs()));
+
+    console.log('Xorshift128')
+    const r128 = new SeedRandom.Xorshift128(seed);
+    console.log(r128.next());
+    console.log(r128.i);
+    console.log(r128.r);
+    console.log([...r128.is()]);
+    console.log([...r128.is(5)]);
+    console.log([...r128.rs()]);
+    console.log([...r128.rs(5)]);
+
+    console.log('Xoroshiro128pp')
+    const r128pp = new SeedRandom.Xoroshiro128pp(123, 456, 789, 999);
+    console.log(r128pp.next());
+    console.log(r128pp.i);
+    console.log(r128pp.I);
+    console.log(r128pp.r);
+    console.log([...r128pp.is()]);
+    console.log([...r128pp.is(5)]);
+    console.log([...r128pp.rs()]);
+    console.log([...r128pp.rs(5)]);
+    console.log([...r128pp.Is()]);
+    console.log([...r128pp.Is(5)]);
+
+    const mt = new MersenneTwister();
+    console.log('MersenneTwister')
+    console.log(mt.next())
+    console.log(mt.nextInt())
+    console.log(mt.nextInt(6))
+    console.log(mt.nextInt(1,6))
+    console.log(mt.i)
+    console.log(mt.r)
+//    const mt = SeedRandom.MersenneTwister();
+//    console.log(mt.nextInt())
+})
+</script>
