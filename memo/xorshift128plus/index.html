@@ -1,0 +1,120 @@
+<meta charset="UTF-8">
+<script src="../../docs/lib/util/type.js"></script>
+<script src="../../docs/lib/util/test/assertion.js"></script>
+<script src="seed.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    const a = new Assertion();
+    a.t(Type.isCls(Seed));
+    console.log(String.Base64)
+    console.log(String.Base64URL)
+    console.log(String.Base256)
+    console.log(String.getBaseChars(16))
+    console.log(String.getBaseChars(32))
+    console.log(String.getBaseChars(36))
+    console.log(String.getBaseChars(64))
+    console.log(String.getBaseChars(256))
+    a.t(64===String.Base64.length && '0'===String.Base64[0] && '/'===String.Base64[63]);
+    a.t(64===String.Base64URL.length && '0'===String.Base64URL[0] && '_'===String.Base64URL[63]);
+    a.t(256===String.Base256.length && '⠀'===String.Base256[0] && '⣿'===String.Base256[255]);
+    // String.getBaseChars()
+    a.t(()=>{
+        for (let base of [10,16,32,36,64,256]) {
+            const chars = String.getBaseChars(base);
+            a.t(base===chars.length);
+        }
+        return true
+    })
+    a.t(()=>{
+        const base = 10;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && '9'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 16;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'F'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 32;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'V'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 36;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'Z'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 64;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && '_'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 256;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '⠀'===chars[0] && '⣿'===chars[base-1];
+    })
+    // Number.getFigureValuesOfBase()
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 10);// 2^32-1を10進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 10===figs.length && [4,2,9,4,9,6,7,2,9,5].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 16);// 2^32-1を16進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 8===figs.length && [15, 15, 15, 15, 15, 15, 15, 15].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 32);// 2^32-1を32進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [3, 31, 31, 31, 31, 31, 31].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 36);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [1, 35, 1, 4, 1, 35, 3].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 64);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 6===figs.length && [3, 63, 63, 63, 63, 63].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 256);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 4===figs.length && [255, 255, 255, 255].every((v,i)=>v===figs[i]);
+    })
+    // Seed
+    a.e(TypeError,'引数のbitSizeは32の整数倍であるべきです。',()=>new Seed(16))
+    a.t(()=>{
+        const S = new Seed();
+        console.log(S, S.bitSize, S.byteSize)
+        return 128===S.bitSize && 16===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(64);
+        console.log(S, S.bitSize, S.byteSize)
+        return 64===S.bitSize && 8===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(32);
+        console.log(S, S.bitSize, S.byteSize)
+        return 32===S.bitSize && 4===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(256);
+        console.log(S, S.bitSize, S.byteSize)
+        return 256===S.bitSize && 32===S.byteSize
+    });
+    a.t(()=>{
+        for (let bitSize of [32,64,128,256,512,1024,2024,4048]) {
+            const S = new Seed(bitSize);
+            return bitSize===S.bitSize && Math.floor(S.bitSize/8)===S.byteSize;
+        }
+    });
+
+    a.fin();
+})
+</script>
