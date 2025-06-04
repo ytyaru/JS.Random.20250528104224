@@ -25,6 +25,21 @@ Number.getFigureValuesOfBase = function(N,B,A) {// N:数, B:基数, A:各桁の�
     if (0===Q) {A.reverse()}
     return 0===Q ? A : Number.getFigureValuesOfBase(Q,B,A)
 }
+BigInt.getFigureValuesOfBase = function(N,B,A) {// N:数, B:基数, A:各桁の値を0〜B-1の値でセットした配列
+    if (undefined===A) {A = []}
+    const Q = N / B; // 商
+    const R = N % B; // 余り
+    A.push(R);
+    if (0n===Q) {A.reverse()}
+    return 0n===Q ? A : BigInt.getFigureValuesOfBase(Q,B,A)
+}
+BigInt.toSafeInteger(bi) {
+    const n = parseInt(bi)
+    if (Number.isSafeInteger(n)) {return n}
+    throw new TypeError(`引数のBigIntはNumber.isSafeInteger()で真を返す値であるべきです。`)
+}
+//Number.MAX_SAFE_INTEGER<2n**53n-1n
+// perseInt(2n**64n)
 class Fig32 {// u32を各基数で表記した時の桁数Map
     constructor() {
         // [基数,桁数] 桁数は計算済み(Number.getFigureValuesOfBase().length)
@@ -97,6 +112,7 @@ class Cell32 {// 0〜2³²-1 | 0〜4294967295
 }
 
 class Seed {
+    /*
     static of(...args) {// u32がN個, F桁の文字列が1個, Uint32Arrayが1個, Seedインスタンスが1個
         args = [...args];
         if (0<args.length) {
@@ -121,6 +137,7 @@ class Seed {
             const S = new Seed();
         }
     }
+    */
     constructor(bitSize=128) {
         this._cell = new Cell32();
         if (0!==(bitSize%this._cell.bitSize)){throw new TypeError(`引数のbitSizeは${this._cell.bitSize}の整数倍であるべきです。`)}
