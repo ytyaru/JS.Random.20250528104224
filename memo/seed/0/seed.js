@@ -107,7 +107,9 @@ class IntType {
     convert(v) {
         if (this.#isB) {if ('bigint'!==typeof v) {throw new TypeError(`値はBigIntのみ有効です。`)}}
         else {if (!Number.isSafeInteger(v)) {throw new TypeError(`値はNumber.isSafeInteger()のみ有効です。`)}}
-        return v % this.length
+        console.log(v, v < this.min || this.max < v)
+        return (v < this.min || this.max < v) ? v % this.length : v
+//        return v % this.length
     }
     /*
     get min() {return this.#isB ? (this._signed ? (((-2n)**BigInt(this._bitSize))/2n : 0n)) : (this._signed ? (Math.floor(((-2)**this._bitSize)/2) : 0)) }
