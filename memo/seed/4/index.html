@@ -1,0 +1,505 @@
+<meta charset="UTF-8">
+<script src="../../../docs/lib/util/type.js"></script>
+<script src="../../../docs/lib/util/test/assertion.js"></script>
+<script src="i32.js"></script>
+<script src="seed.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    const a = new Assertion();
+    a.t(Type.isCls(Seed));
+    console.log(String.Base64)
+    console.log(String.Base64URL)
+    console.log(String.Base256)
+    console.log(String.Base36)
+    console.log(String.Base32)
+    console.log(String.Base16)
+    console.log(String.Base10)
+    console.log(String.Base8)
+    console.log(String.getBaseChars(16))
+    console.log(String.getBaseChars(32))
+    console.log(String.getBaseChars(36))
+    console.log(String.getBaseChars(64))
+    console.log(String.getBaseChars(256))
+    a.t(64===String.Base64.length && '0'===String.Base64[0] && '/'===String.Base64[63]);
+    a.t(64===String.Base64URL.length && '0'===String.Base64URL[0] && '_'===String.Base64URL[63]);
+    a.t(256===String.Base256.length && '⠀'===String.Base256[0] && '⣿'===String.Base256[255]);
+    a.t(36===String.Base36.length && '0'===String.Base36[0] && 'Z'===String.Base36[35]);
+    a.t(32===String.Base32.length && '0'===String.Base32[0] && 'V'===String.Base32[31]);
+    a.t(16===String.Base16.length && '0'===String.Base16[0] && 'F'===String.Base16[15]);
+    a.t(10===String.Base10.length && '0'===String.Base10[0] && '9'===String.Base10[9]);
+    a.t(8===String.Base8.length && '0'===String.Base8[0] && '7'===String.Base8[7]);
+    // String.getBaseChars()
+    a.t(()=>{
+        for (let base of [10,16,32,36,64,256]) {
+            const chars = String.getBaseChars(base);
+            a.t(base===chars.length);
+        }
+        return true
+    })
+    a.t(()=>{
+        const base = 10;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && '9'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 16;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'F'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 32;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'V'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 36;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && 'Z'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 64;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '0'===chars[0] && '/'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 64;
+        const chars = String.getBaseChars(base, false);
+        return base===chars.length && '0'===chars[0] && '/'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 64;
+        const chars = String.getBaseChars(base, true);
+        return base===chars.length && '0'===chars[0] && '_'===chars[base-1];
+    })
+    a.t(()=>{
+        const base = 256;
+        const chars = String.getBaseChars(base);
+        return base===chars.length && '⠀'===chars[0] && '⣿'===chars[base-1];
+    })
+    for (let v of [0,1,-1,'2',2n,NaN,null,undefined]) {
+        a.e(TypeError, `引数は2,8,10,16,32,36,64,256のいずれかであるべきです。`, ()=>String.getBaseChars(0));
+    }
+    // Number.getFigureValuesOfBase()
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 10);// 2^32-1を10進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 10===figs.length && [4,2,9,4,9,6,7,2,9,5].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 16);// 2^32-1を16進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 8===figs.length && [15, 15, 15, 15, 15, 15, 15, 15].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 32);// 2^32-1を32進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [3, 31, 31, 31, 31, 31, 31].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 36);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [1, 35, 1, 4, 1, 35, 3].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 64);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 6===figs.length && [3, 63, 63, 63, 63, 63].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = Number.getFigureValuesOfBase(2**32-1, 256);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 4===figs.length && [255, 255, 255, 255].every((v,i)=>v===figs[i]);
+    })
+    // BigInt.getFigureValuesOfBase()
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 10n);// 2^32-1を10進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 10===figs.length && [4n,2n,9n,4n,9n,6n,7n,2n,9n,5n].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 16n);// 2^32-1を16進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 8===figs.length && [15n, 15n, 15n, 15n, 15n, 15n, 15n, 15n].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 32n);// 2^32-1を32進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [3n, 31n, 31n, 31n, 31n, 31n, 31n].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 36n);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 7===figs.length && [1n, 35n, 1n, 4n, 1n, 35n, 3n].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 64n);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 6===figs.length && [3n, 63n, 63n, 63n, 63n, 63n].every((v,i)=>v===figs[i]);
+    })
+    a.t(()=>{
+        const figs = BigInt.getFigureValuesOfBase(2n**32n-1n, 256n);//^32-1を36進数で表記した数(4294967295)を各桁毎に配列にして返す
+        console.log(figs)
+        return 4===figs.length && [255n, 255n, 255n, 255n].every((v,i)=>v===figs[i]);
+    })
+    // Number.fromBaseN
+    a.t(()=>{
+        const [C, base, fig] = ['1', 2, 32];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        //return (2**fig-1)===v;
+        return (base**fig-1)===v; // 4294967295
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['7', 8, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 63
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['9', 10, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 99
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['F', 16, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 255
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['V', 32, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 1023
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['Z', 36, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 1295
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['/', 64, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 4095
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['_', 64, 2];
+        const [str, isU] = [C.repeat(fig), true];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 4095
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['⣿', 256, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = Number.fromBaseN(str, base, isU);
+        console.log(v, base**fig-1)
+        return (base**fig-1)===v; // 65535
+    })
+    for (let v of ['', null, undefined, 0, 1, false, true]) {
+        a.e(TypeError, `第一引数には一文字以上の文字列を指定してください。`, ()=>Number.fromBaseN(v, 32))
+    }
+    for (let base of [2,8,16,32,36,64,256]) {
+        for (let isU of [false, true]) {
+            const chars = String.getBaseChars(base, isU);
+            a.e(TypeError, `文字表に存在しない字が見つかりました。次の文字表のいずれかの字だけで構成してください。:${chars}`, ()=>Number.fromBaseN('山田', base, isU));
+        }
+    }
+//    a.e(TypeError, `文字表に存在しない字が見つかりました。次の文字表のいずれかの字だけで構成してください。:0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F`, ()=>Number.fromBaseN('山田', 16));
+    // BigInt.fromBaseN
+    a.t(()=>{
+        const [C, base, fig] = ['1', 2, 32];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //return (2n**fig-1n)===v;
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 4294967295n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['7', 8, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 63n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['9', 10, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 99n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['F', 16, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 255n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['V', 32, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 1023n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['Z', 36, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 1295n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['/', 64, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 4095n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['_', 64, 2];
+        const [str, isU] = [C.repeat(fig), true];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 4095n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['⣿', 256, 2];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        //console.log(v, base**fig-1n)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 65535n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['⣿', 256, 4];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        console.log(v)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 4294967295n
+    })
+    a.t(()=>{
+        const [C, base, fig] = ['⣿', 256, 16];
+        const [str, isU] = [C.repeat(fig), false];
+        const v = BigInt.fromBaseN(str, base, isU);
+        console.log(v)
+        return (BigInt(base)**BigInt(fig)-1n)===v; // 340282366920938463463374607431768211455n
+    })
+    for (let v of ['', null, undefined, 0, 1, false, true]) {
+        a.e(TypeError, `第一引数には一文字以上の文字列を指定してください。`, ()=>BigInt.fromBaseN(v, 32))
+    }
+    for (let base of [2,8,16,32,36,64,256]) {
+        for (let isU of [false, true]) {
+            const chars = String.getBaseChars(base, isU);
+            a.e(TypeError, `文字表に存在しない字が見つかりました。次の文字表のいずれかの字だけで構成してください。:${chars}`, ()=>BigInt.fromBaseN('山田', base, isU));
+        }
+    }
+    // UintType
+    a.t(()=>{
+        const bitSize = 8;
+        const u8 = new UintType(bitSize);
+        console.log(u8 instanceof UintType, bitSize===u8.bitSize, Math.floor(bitSize/8)===u8.byteSize, Number===u8.type, 2**bitSize===u8.length, 0===u8.min, 2**bitSize-1===u8.max)
+        return u8 instanceof UintType && bitSize===u8.bitSize && Math.floor(bitSize/8)===u8.byteSize && Number===u8.type && 2**bitSize===u8.length && 0===u8.min && 2**bitSize-1===u8.max;
+    });
+    a.t(()=>{
+        const bitSize = 16;
+        const u16 = new UintType(bitSize);
+        console.log(u16 instanceof UintType, bitSize===u16.bitSize, Math.floor(bitSize/8)===u16.byteSize, Number===u16.type, 2**bitSize===u16.length, 0===u16.min, 2**bitSize-1===u16.max)
+        return u16 instanceof UintType && bitSize===u16.bitSize && Math.floor(bitSize/8)===u16.byteSize && Number===u16.type && 2**bitSize===u16.length && 0===u16.min && 2**bitSize-1===u16.max;
+    });
+    a.t(()=>{
+        const bitSize = 32;
+        const u32 = new UintType(bitSize);
+        console.log(u32 instanceof UintType, bitSize===u32.bitSize, Math.floor(bitSize/8)===u32.byteSize, Number===u32.type, 2**bitSize===u32.length, 0===u32.min, 2**bitSize-1===u32.max)
+        return u32 instanceof UintType && bitSize===u32.bitSize && Math.floor(bitSize/8)===u32.byteSize && Number===u32.type && 2**bitSize===u32.length && 0===u32.min && 2**bitSize-1===u32.max;
+    });
+    a.t(()=>{
+        const bitSize = 64;
+        const u64 = new UintType(bitSize);
+        console.log(u64 instanceof UintType, bitSize===u64.bitSize, Math.floor(bitSize/8)===u64.byteSize, BigInt===u64.type, BigInt(2**bitSize)===u64.length, 0n===u64.min, (2n**BigInt(bitSize)-1n)===u64.max)
+        console.log(u64.max, (2n**BigInt(bitSize)-1n))
+        return u64 instanceof UintType && bitSize===u64.bitSize && Math.floor(bitSize/8)===u64.byteSize && BigInt===u64.type && BigInt(2**bitSize)===u64.length && 0n===u64.min && (2n**BigInt(bitSize)-1n)===u64.max;
+    });
+    // IntType
+    a.t(()=>{
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        return u32 instanceof IntType && bitSize===u32.bitSize && signed===u32.signed && Math.floor(32/8)===u32.byteSize && Number===u32.type && 2**bitSize===u32.length && 0===u32.min && 2**bitSize-1===u32.max;
+    })
+    a.t(()=>{
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        const R = [];
+        for (let n of [0,2**32-1]) {R.push(n===u32.convert(n))}
+        return R.every(r=>r);
+    })
+    a.t(()=>{//オーバーフローされているか確認する min/max±1 リテラル表記
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        console.log(u32.convert(-1), u32.convert(2**32))
+        return (2**32-1)===u32.convert(-1) && 0===u32.convert(2**32);
+    });
+    a.t(()=>{//オーバーフローされているか確認する min/max±2 リテラル表記
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        console.log(u32.convert(-1), u32.convert(2**32+1))
+        return (2**32-2)===u32.convert(-2) && 1===u32.convert(2**32+1);
+    });
+    a.t(()=>{//オーバーフローされているか確認する min/max±1 ゲッター表記
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        console.log(u32.convert(u32.min-1), u32.convert(u32.max+1))
+        return u32.max===u32.convert(u32.min-1) && u32.min===u32.convert(u32.max+1);
+    });
+    a.t(()=>{//オーバーフローされているか確認する min/max±2 ゲッター表記
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        console.log(u32.convert(u32.min-2), u32.convert(u32.max+2))
+        return u32.max-1===u32.convert(u32.min-2) && u32.min+1===u32.convert(u32.max+2);
+    });
+    a.t(()=>{//オーバーフローされているか確認する min/max±3 ゲッター表記
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        const D = 3; // diff
+        console.log(u32.convert(u32.min-D), u32.convert(u32.max+D))
+        return u32.max-(D-1)===u32.convert(u32.min-D) && u32.min+(D-1)===u32.convert(u32.max+D);
+    });
+
+    (()=>{
+        const [bitSize, signed] = [32, false];
+        const u32 = new IntType(bitSize, signed);
+        const testCases = [
+            [0, 0], [1, 1], [2, 2], [3, 3], [2**32-3, 2**32-3], [2**32-2, 2**32-2], [2**32-1, 2**32-1],
+            [2**32-1, -1], [2**32-2, -2], [2**32-3, -3], [0, 2**32], [1, 2**32+1], [2, 2**32+2], 
+            [2**32-1, u32.min-1], [2**32-2, u32.min-2], [2**32-3, u32.min-3], [0, 2**33], [1, 2**33+1], [2, 2**33+2]];
+        for (let [expected, arg] of testCases) {
+            console.log(expected, arg, u32.convert(arg));
+            a.t(expected===u32.convert(arg))
+        }
+    })();
+    const u32 = new IntType(32, false);
+    for (let n of [Number.MAX_SAFE_INTEGER+1, Number.MIN_SAFE_INTEGER-1]) {
+        a.e(TypeError, `値はNumber.isSafeInteger()のみ有効です。`, ()=>u32.convert(n))
+    }
+
+    // IntType(32, true)
+    a.t(()=>{
+        const [bitSize, signed] = [32, true];
+        const s32 = new IntType(bitSize, signed);
+        console.log(s32 instanceof IntType, bitSize===s32.bitSize, signed===s32.signed, Math.floor(32/8)===s32.byteSize, Number===s32.type, 2**bitSize===s32.length, ((-2)**(32-1))===s32.min, (2**(bitSize-1)-1)===s32.max)
+        return s32 instanceof IntType && bitSize===s32.bitSize && signed===s32.signed && Math.floor(32/8)===s32.byteSize && Number===s32.type && 2**bitSize===s32.length && ((-2)**(bitSize-1))===s32.min && (2**(bitSize-1)-1)===s32.max;
+    });
+    a.t(()=>{
+        const [bitSize, signed] = [32, true];
+        const s32 = new IntType(bitSize, signed);
+        const R = [];
+        for (let n of [(-2)**31,0,2**31-1]) {R.push(n===s32.convert(n))}
+        console.log(R, s32.convert((-2)**31))
+        return R.every(r=>r);
+    });
+
+    (()=>{// signed int 32 範囲外を含む値
+        const [bitSize, signed] = [32, true];
+        const s32 = new IntType(bitSize, signed);
+        const testCases = [
+            [0, 0], [1, 1], [2, 2], [3, 3], [2**31-3, 2**31-3], [2**31-2, 2**31-2], [2**31-1, 2**31-1],
+            [-1,-1], [-2,-2], [-3,-3], [(-2)**31+2, (-2)**31+2], [(-2)**31+1, (-2)**31+1], [(-2)**31, (-2)**31],
+            // 最大数を1,2,3超過した場合 リテラル表記
+            [(-2)**31, 2**31], [(-2)**31+1, 2**31+1], [(-2)**31+2, 2**31+2],
+            // 最大数を1,2,3超過した場合 ゲッター表記
+            [s32.min, s32.max+1], [s32.min+1, s32.max+2], [s32.min+2, s32.max+3],
+            // 最大数をmax+1,2,3超過した場合 ゲッター表記
+            [s32.min, s32.max*2+2], [s32.min+1, s32.max*2+3], [s32.min+2, s32.max*3+4],
+            // 最小数を1,2,3超過した場合
+//            [0, (-2)**31-1], [1, (-2)**31-2], [2, (-2)**31-3],
+
+
+
+//            [(-2)**31,2**31], [(-2)**31-1,2**31+1], [(-2)**31-2,2**31+2],
+
+            //[-1,-1], [-2,-2], [-3,-3], [(-2)**31, (-2)**31], [(-2)**31-1, (-2)**31-1], [(-2)**31-2, (-2)**31-2],
+        ];
+//            [2**31-1, -1], [2**31-2, -2], [2**31-3, -3], [0, 2**31], [1, 2**31+1], [2, 2**31+2], 
+//            [2**31-1, s32.min-1], [2**31-2, s32.min-2], [2**31-3, s32.min-3], [0, 2**32], [1, 2**32+1], [2, 2**32+2]];
+        for (let [expected, arg] of testCases) {
+            console.log(expected, arg, s32.convert(arg));
+            a.t(expected===s32.convert(arg))
+        }
+        /*
+        */
+        /*
+        for (let i=0; i<testCases.length; i++) {
+            const [expected, arg] = testCases[i];
+            console.log(i, expected, arg, s32.convert(arg));
+            a.t(expected===s32.convert(arg))
+        }
+        */
+    })();
+
+
+
+
+
+
+
+
+    /*
+    // Seed.of() Number
+    a.t(()=>{
+        const seed = Seed.of(123);
+        //console.log(seed)
+        console.log(seed instanceof Seed, 32===seed.type.bitSize, 4===seed.type.byteSize, false===seed.type.signed, Number===seed.type.type, 2**32===seed.type.length, 0===seed.type.min, 2**32-1===seed.type.max, 123===seed.i, '1x'===seed.s)
+        return seed instanceof Seed && 32===seed.type.bitSize && 4===seed.type.byteSize && false===seed.type.signed && Number===seed.type.type && 2**32===seed.type.length && 0===seed.type.min && 2**32-1===seed.type.max && 123===seed.i && '1x'===seed.s; 
+    })
+    // Seed.of() String u32b10:4294967295
+    a.t(()=>{
+        const seed = Seed.of('u32b10:4294967295');
+        //console.log(seed)
+        console.log(seed.i, seed.s)
+        console.log(seed instanceof Seed, 32===seed.type.bitSize, 4===seed.type.byteSize, false===seed.type.signed, Number===seed.type.type, 2**32===seed.type.length, 0===seed.type.min, 2**32-1===seed.type.max, 4294967295===seed.i, '4294967295'===seed.s)
+        return seed instanceof Seed && 32===seed.type.bitSize && 4===seed.type.byteSize && false===seed.type.signed && Number===seed.type.type && 2**32===seed.type.length && 0===seed.type.min && 2**32-1===seed.type.max && 4294967295===seed.i && '4294967295'===seed.s; 
+    })
+    */
+
+
+    /*
+    // Seed
+    a.e(TypeError,'引数のbitSizeは32の整数倍であるべきです。',()=>new Seed(16))
+    a.t(()=>{
+        const S = new Seed();
+        console.log(S, S.bitSize, S.byteSize)
+        return 128===S.bitSize && 16===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(64);
+        console.log(S, S.bitSize, S.byteSize)
+        return 64===S.bitSize && 8===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(32);
+        console.log(S, S.bitSize, S.byteSize)
+        return 32===S.bitSize && 4===S.byteSize
+    });
+    a.t(()=>{
+        const S = new Seed(256);
+        console.log(S, S.bitSize, S.byteSize)
+        return 256===S.bitSize && 32===S.byteSize
+    });
+    a.t(()=>{
+        for (let bitSize of [32,64,128,256,512,1024,2024,4048]) {
+            const S = new Seed(bitSize);
+            return bitSize===S.bitSize && Math.floor(S.bitSize/8)===S.byteSize;
+        }
+    });
+    */
+    a.fin();
+})
+</script>
