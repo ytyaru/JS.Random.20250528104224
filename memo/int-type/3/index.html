@@ -1,0 +1,319 @@
+<meta charset="UTF-8">
+<script src="../../../docs/lib/util/type.js"></script>
+<script src="../../../docs/lib/util/test/assertion.js"></script>
+<script src="int-type.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    const a = new Assertion();
+    // クラス存在確認
+    a.t(Type.isCls(IntType));
+    // インスタンス型確認
+    a.t(Type.isIns(IntType.get(32), IntType));
+    a.t(Type.isIns(IntType.get(32, false), IntType));
+    a.t(Type.isIns(IntType.get(32, true), IntType));
+    a.t(IntType.get(32) instanceof IntType);
+    a.t(IntType.get(32, false) instanceof IntType);
+    a.t(IntType.get(32, true) instanceof IntType);
+    // 例外処理
+    a.e(TypeError, `引数は一つ以上必要です。(bitSize, signed)か(/^([us])([0-9]{1,})$/)のみ有効です。`, ()=>IntType.get());
+    for (let signed of [false, true]) {
+        for (let bitSize of [0,-1,0.1,Infinity,-Infinity,NaN,undefined,null]) {
+            a.e(TypeError, `bitSizeは0より大きい整数であるべきです。`, ()=>IntType.get(bitSize, signed));
+        }
+        for (let bitSize of ['', 's', 'u', '8']) {
+            a.e(TypeError, `第一引数が文字列なら正規表現 /^([us])([0-9]{1,})$/ にマッチする値であるべきです。`, ()=>IntType.get(bitSize, signed));
+        }
+    }
+    for (let signed of [false, true]) {
+        for (let bitSize of [8,16,32,53,54,64,128,256]) {
+            for (let v of [Number.MAX_SAFE_INTEGER+1, Number.MIN_SAFE_INTEGER-1, NaN, Infinity, -Infinity, undefined, null, '8']) {
+                const msg = 53 < bitSize ? '値はBigIntのみ有効です。' : '値はNumber.isSafeInteger()のみ有効です。'
+                //console.log(signed, bitSize, v, msg)
+                a.e(TypeError, msg, ()=>(IntType.get(bitSize,signed)).convert(v))
+            }
+        }
+    }
+    // UintType
+    a.t(()=>{
+        const bitSize = 8;
+        const u8 = IntType.get(bitSize);
+        return bitSize===u8.bitSize && (bitSize/8)===u8.byteSize && Number===u8.type && false===u8._isB && (2**bitSize)===u8.length && 0===u8.min && (2**bitSize-1)===u8.max;
+    });
+    a.t(()=>{// Number
+        for (let bitSize of [8,16,32,53]) {
+            const ui = IntType.get(bitSize);
+            return bitSize===ui.bitSize && (bitSize/8)===ui.byteSize && Number===ui.type && false===ui._isB && (2**bitSize)===ui.length && 0===ui.min && (2**bitSize-1)===ui.max;
+        }
+    });
+    a.t(()=>{// BigInt
+        for (let bitSize of [54,64,128,256,512,1024,2048,4096]) {
+            const ui = IntType.get(bitSize);
+            const R = [bitSize===ui.bitSize, 
+                        (bitSize/8)===ui.byteSize, 
+                        BigInt===ui.type, 
+                        true===ui._isB, 
+                        (2n**BigInt(bitSize))===ui.length, 
+                        0n===ui.min, 
+                        (2n**BigInt(bitSize)-1n)===ui.max];
+            console.log(R);
+            console.log((bitSize/8), ui.byteSize);
+            return R.every(v=>v);
+        }
+    });
+    a.t(()=>{// 境界値チェック
+        const bitSize = 8;
+        const u8 = IntType.get(bitSize);
+        const testCases = [
+            [0, 0], [2**bitSize-1, 2**bitSize-1],
+            [u8.min, u8.min], [u8.max, u8.max],
+
+            [2**bitSize-1, -1], [0, 2**bitSize],
+            [u8.max, u8.min-1], [u8.min, u8.max+1],
+
+            [u8.max-1, u8.min-2], [u8.min+1, u8.max+2],
+            [u8.max-2, u8.min-3], [u8.min+2, u8.max+3],
+
+            [u8.min+2, u8.min-(u8.length-2)], [u8.max-2, u8.max+(u8.length-2)],
+            [u8.min+1, u8.min-(u8.length-1)], [u8.max-1, u8.max+(u8.length-1)],
+            [u8.min+0, u8.min-(u8.length+0)], [u8.max-0, u8.max+(u8.length+0)],
+            [u8.max-0, u8.min-(u8.length+1)], [u8.min+0, u8.max+(u8.length+1)],
+            [u8.max-1, u8.min-(u8.length+2)], [u8.min+1, u8.max+(u8.length+2)],
+
+            [u8.min+2, u8.min-(u8.length*2-2)], [u8.max-2, u8.max+(u8.length*2-2)],
+            [u8.min+1, u8.min-(u8.length*2-1)], [u8.max-1, u8.max+(u8.length*2-1)],
+            [u8.min+0, u8.min-(u8.length*2+0)], [u8.max-0, u8.max+(u8.length*2+0)],
+            [u8.max-0, u8.min-(u8.length*2+1)], [u8.min+0, u8.max+(u8.length*2+1)],
+            [u8.max-1, u8.min-(u8.length*2+2)], [u8.min+1, u8.max+(u8.length*2+2)],
+
+            [u8.min+2, u8.min-(u8.length*3-2)], [u8.max-2, u8.max+(u8.length*3-2)],
+            [u8.min+1, u8.min-(u8.length*3-1)], [u8.max-1, u8.max+(u8.length*3-1)],
+            [u8.min+0, u8.min-(u8.length*3+0)], [u8.max-0, u8.max+(u8.length*3+0)],
+            [u8.max-0, u8.min-(u8.length*3+1)], [u8.min+0, u8.max+(u8.length*3+1)],
+            [u8.max-1, u8.min-(u8.length*3+2)], [u8.min+1, u8.max+(u8.length*3+2)],
+
+            [u8.min+2, u8.min-(u8.length*4-2)], [u8.max-2, u8.max+(u8.length*4-2)],
+            [u8.min+1, u8.min-(u8.length*4-1)], [u8.max-1, u8.max+(u8.length*4-1)],
+            [u8.min+0, u8.min-(u8.length*4+0)], [u8.max-0, u8.max+(u8.length*4+0)],
+            [u8.max-0, u8.min-(u8.length*4+1)], [u8.min+0, u8.max+(u8.length*4+1)],
+            [u8.max-1, u8.min-(u8.length*4+2)], [u8.min+1, u8.max+(u8.length*4+2)],
+        ];
+        for (let [expected, arg] of testCases) {
+            const actual = u8.convert(arg);
+            console.log(expected, arg, actual);
+            if (expected!==actual) {return false}
+        }
+        return true
+    });
+
+    // SintType
+    a.t(()=>{
+        const bitSize = 8;
+        const s8 = IntType.get(bitSize,true);
+        return bitSize===s8.bitSize && (bitSize/8)===s8.byteSize && Number===s8.type && false===s8._isB && (2**bitSize)===s8.length && ((-2)**(bitSize-1))===s8.min && (2**(bitSize-1)-1)===s8.max;
+    });
+    a.t(()=>{// Number
+        for (let bitSize of [8,16,32,53]) {
+            const si = IntType.get(bitSize,true);
+            return bitSize===si.bitSize && (bitSize/8)===si.byteSize && Number===si.type && false===si._isB && (2**bitSize)===si.length && ((-2)**(bitSize-1))===si.min && (2**(bitSize-1)-1)===si.max;
+        }
+    });
+    a.t(()=>{// BigInt
+        for (let bitSize of [54,64,128,256,512,1024,2048,4096]) {
+            const ui = IntType.get(bitSize,true);
+            const R = [bitSize===ui.bitSize, 
+                        (bitSize/8)===ui.byteSize, 
+                        BigInt===ui.type, 
+                        true===ui._isB, 
+                        (2n**BigInt(bitSize))===ui.length, 
+                        ((-2n)**(BigInt(bitSize)-1n))===ui.min, 
+                        (2n**(BigInt(bitSize)-1n)-1n)===ui.max];
+            console.log(R);
+            console.log((bitSize/8), ui.byteSize);
+            return R.every(v=>v);
+        }
+    });
+    a.t(()=>{// 境界値チェック
+        const bitSize = 8;
+        const s8 = IntType.get(bitSize,true);
+        const testCases = [
+            [(-2)**(bitSize-1), (-2)**(bitSize-1)], [2**(bitSize-1)-1, 2**(bitSize-1)-1],
+            [s8.min, s8.min], [s8.max, s8.max],
+
+            [2**(bitSize-1)-1, ((-2)**(bitSize-1))-1], [(-2)**(bitSize-1), (2**(bitSize-1)-1)+1],
+            [s8.max, s8.min-1], [s8.min, s8.max+1],
+
+            [s8.max-1, s8.min-2], [s8.min+1, s8.max+2],
+            [s8.max-2, s8.min-3], [s8.min+2, s8.max+3],
+
+            [s8.min+2, s8.min-(s8.length-2)], [s8.max-2, s8.max+(s8.length-2)],
+            [s8.min+1, s8.min-(s8.length-1)], [s8.max-1, s8.max+(s8.length-1)],
+            [s8.min+0, s8.min-(s8.length+0)], [s8.max-0, s8.max+(s8.length+0)],
+            [s8.max-0, s8.min-(s8.length+1)], [s8.min+0, s8.max+(s8.length+1)],
+            [s8.max-1, s8.min-(s8.length+2)], [s8.min+1, s8.max+(s8.length+2)],
+
+            [s8.min+2, s8.min-(s8.length*2-2)], [s8.max-2, s8.max+(s8.length*2-2)],
+            [s8.min+1, s8.min-(s8.length*2-1)], [s8.max-1, s8.max+(s8.length*2-1)],
+            [s8.min+0, s8.min-(s8.length*2+0)], [s8.max-0, s8.max+(s8.length*2+0)],
+            [s8.max-0, s8.min-(s8.length*2+1)], [s8.min+0, s8.max+(s8.length*2+1)],
+            [s8.max-1, s8.min-(s8.length*2+2)], [s8.min+1, s8.max+(s8.length*2+2)],
+            [s8.max-2, s8.min-(s8.length*2+3)], [s8.min+2, s8.max+(s8.length*2+3)],
+
+            [s8.min+2, s8.min-(s8.length*3-2)], [s8.max-2, s8.max+(s8.length*3-2)],
+            [s8.min+1, s8.min-(s8.length*3-1)], [s8.max-1, s8.max+(s8.length*3-1)],
+            [s8.min+0, s8.min-(s8.length*3+0)], [s8.max-0, s8.max+(s8.length*3+0)],
+            [s8.max-0, s8.min-(s8.length*3+1)], [s8.min+0, s8.max+(s8.length*3+1)],
+            [s8.max-1, s8.min-(s8.length*3+2)], [s8.min+1, s8.max+(s8.length*3+2)],
+
+            [s8.min+2, s8.min-(s8.length*4-2)], [s8.max-2, s8.max+(s8.length*4-2)],
+            [s8.min+1, s8.min-(s8.length*4-1)], [s8.max-1, s8.max+(s8.length*4-1)],
+            [s8.min+0, s8.min-(s8.length*4+0)], [s8.max-0, s8.max+(s8.length*4+0)],
+            [s8.max-0, s8.min-(s8.length*4+1)], [s8.min+0, s8.max+(s8.length*4+1)],
+            [s8.max-1, s8.min-(s8.length*4+2)], [s8.min+1, s8.max+(s8.length*4+2)],
+        ];
+        for (let [expected, arg] of testCases) {
+            const actual = s8.convert(arg);
+            console.log(expected, arg, actual);
+            if (expected!==actual) {return false}
+        }
+        return true
+    });
+    /*
+    function test(ix, L, d) {
+        const Ms = [2,1,0,0,1,2];
+        const Ls = [2,1,0,1,2,3];
+        return [...new Array(5)].map((_,i)=>)
+        [2,1,0,1,2,3].map((_,i)=>)
+        const D0 = 
+        [ix.min+Ms[i], ix.min-(ix.length*L-2)], [ix.max-Ms[i], ix.max+(ix.length*2-2)],
+    }
+    function test(ix, L, d) {return [
+        [ix.min+2, ix.min-(ix.length*L-2)], [ix.max-2, ix.max+(ix.length*2-2)],
+        [ix.min+1, ix.min-(ix.length*L-1)], [ix.max-1, ix.max+(ix.length*2-1)],
+        [ix.min+0, ix.min-(ix.length*L+0)], [ix.max-0, ix.max+(ix.length*2+0)],
+        [ix.max-0, ix.min-(ix.length*L+1)], [ix.min+0, ix.max+(ix.length*2+1)],
+        [ix.max-1, ix.min-(ix.length*L+2)], [ix.min+1, ix.max+(ix.length*2+2)],
+        [ix.max-2, ix.min-(ix.length*L+3)], [ix.min+2, ix.max+(ix.length*2+3)],
+    ]}
+    */
+    function getBorderTestCasesN(ix) { return [
+        [ix.min, ix.min], [ix.max, ix.max],
+        [ix.max-0, ix.min-1], [ix.min+0, ix.max+1],
+        [ix.max-1, ix.min-2], [ix.min+1, ix.max+2],
+        [ix.max-2, ix.min-3], [ix.min+2, ix.max+3],
+
+        [ix.min+2, ix.min-(ix.length-2)], [ix.max-2, ix.max+(ix.length-2)],
+        [ix.min+1, ix.min-(ix.length-1)], [ix.max-1, ix.max+(ix.length-1)],
+        [ix.min+0, ix.min-(ix.length+0)], [ix.max-0, ix.max+(ix.length+0)],
+        [ix.max-0, ix.min-(ix.length+1)], [ix.min+0, ix.max+(ix.length+1)],
+        [ix.max-1, ix.min-(ix.length+2)], [ix.min+1, ix.max+(ix.length+2)],
+
+        [ix.min+2, ix.min-(ix.length*2-2)], [ix.max-2, ix.max+(ix.length*2-2)],
+        [ix.min+1, ix.min-(ix.length*2-1)], [ix.max-1, ix.max+(ix.length*2-1)],
+        [ix.min+0, ix.min-(ix.length*2+0)], [ix.max-0, ix.max+(ix.length*2+0)],
+        [ix.max-0, ix.min-(ix.length*2+1)], [ix.min+0, ix.max+(ix.length*2+1)],
+        [ix.max-1, ix.min-(ix.length*2+2)], [ix.min+1, ix.max+(ix.length*2+2)],
+        [ix.max-2, ix.min-(ix.length*2+3)], [ix.min+2, ix.max+(ix.length*2+3)],
+
+        [ix.min+2, ix.min-(ix.length*3-2)], [ix.max-2, ix.max+(ix.length*3-2)],
+        [ix.min+1, ix.min-(ix.length*3-1)], [ix.max-1, ix.max+(ix.length*3-1)],
+        [ix.min+0, ix.min-(ix.length*3+0)], [ix.max-0, ix.max+(ix.length*3+0)],
+        [ix.max-0, ix.min-(ix.length*3+1)], [ix.min+0, ix.max+(ix.length*3+1)],
+        [ix.max-1, ix.min-(ix.length*3+2)], [ix.min+1, ix.max+(ix.length*3+2)],
+
+        [ix.min+2, ix.min-(ix.length*4-2)], [ix.max-2, ix.max+(ix.length*4-2)],
+        [ix.min+1, ix.min-(ix.length*4-1)], [ix.max-1, ix.max+(ix.length*4-1)],
+        [ix.min+0, ix.min-(ix.length*4+0)], [ix.max-0, ix.max+(ix.length*4+0)],
+        [ix.max-0, ix.min-(ix.length*4+1)], [ix.min+0, ix.max+(ix.length*4+1)],
+        [ix.max-1, ix.min-(ix.length*4+2)], [ix.min+1, ix.max+(ix.length*4+2)],
+    ] };
+    function getBorderTestCasesB(ix) { return [
+        [ix.min, ix.min], [ix.max, ix.max],
+        [ix.max-0n, ix.min-1n], [ix.min+0n, ix.max+1n],
+        [ix.max-1n, ix.min-2n], [ix.min+1n, ix.max+2n],
+        [ix.max-2n, ix.min-3n], [ix.min+2n, ix.max+3n],
+
+        [ix.min+2n, ix.min-(ix.length-2n)], [ix.max-2n, ix.max+(ix.length-2n)],
+        [ix.min+1n, ix.min-(ix.length-1n)], [ix.max-1n, ix.max+(ix.length-1n)],
+        [ix.min+0n, ix.min-(ix.length+0n)], [ix.max-0n, ix.max+(ix.length+0n)],
+        [ix.max-0n, ix.min-(ix.length+1n)], [ix.min+0n, ix.max+(ix.length+1n)],
+        [ix.max-1n, ix.min-(ix.length+2n)], [ix.min+1n, ix.max+(ix.length+2n)],
+
+        [ix.min+2n, ix.min-(ix.length*2n-2n)], [ix.max-2n, ix.max+(ix.length*2n-2n)],
+        [ix.min+1n, ix.min-(ix.length*2n-1n)], [ix.max-1n, ix.max+(ix.length*2n-1n)],
+        [ix.min+0n, ix.min-(ix.length*2n+0n)], [ix.max-0n, ix.max+(ix.length*2n+0n)],
+        [ix.max-0n, ix.min-(ix.length*2n+1n)], [ix.min+0n, ix.max+(ix.length*2n+1n)],
+        [ix.max-1n, ix.min-(ix.length*2n+2n)], [ix.min+1n, ix.max+(ix.length*2n+2n)],
+        [ix.max-2n, ix.min-(ix.length*2n+3n)], [ix.min+2n, ix.max+(ix.length*2n+3n)],
+
+        [ix.min+2n, ix.min-(ix.length*3n-2n)], [ix.max-2n, ix.max+(ix.length*3n-2n)],
+        [ix.min+1n, ix.min-(ix.length*3n-1n)], [ix.max-1n, ix.max+(ix.length*3n-1n)],
+        [ix.min+0n, ix.min-(ix.length*3n+0n)], [ix.max-0n, ix.max+(ix.length*3n+0n)],
+        [ix.max-0n, ix.min-(ix.length*3n+1n)], [ix.min+0n, ix.max+(ix.length*3n+1n)],
+        [ix.max-1n, ix.min-(ix.length*3n+2n)], [ix.min+1n, ix.max+(ix.length*3n+2n)],
+
+        [ix.min+2n, ix.min-(ix.length*4n-2n)], [ix.max-2n, ix.max+(ix.length*4n-2n)],
+        [ix.min+1n, ix.min-(ix.length*4n-1n)], [ix.max-1n, ix.max+(ix.length*4n-1n)],
+        [ix.min+0n, ix.min-(ix.length*4n+0n)], [ix.max-0n, ix.max+(ix.length*4n+0n)],
+        [ix.max-0n, ix.min-(ix.length*4n+1n)], [ix.min+0n, ix.max+(ix.length*4n+1n)],
+        [ix.max-1n, ix.min-(ix.length*4n+2n)], [ix.min+1n, ix.max+(ix.length*4n+2n)],
+    ] };
+
+    // Number型 境界値
+    a.t(()=>{
+        for (let signed of [false, true]) {
+            for (let bitSize of [8,16,32]) {
+                const ix = IntType.get(bitSize, signed);
+                for (let [expected, arg] of getBorderTestCasesN(ix)) {
+                    const actual = ix.convert(arg);
+                    console.log(bitSize, signed, expected, arg, actual);
+                    if (expected!==actual) {return false}
+                }
+            }
+        }
+        return true
+    })
+    // BigInt型 境界値
+    a.t(()=>{
+        for (let signed of [false, true]) {
+            for (let bitSize of [64,128,256,512,1024,2048,4096]) {
+                const ix = IntType.get(bitSize, signed);
+                for (let [expected, arg] of getBorderTestCasesB(ix)) {
+                    const actual = ix.convert(arg);
+                    console.log(bitSize, signed, expected, arg, actual);
+                    if (expected!==actual) {return false}
+                }
+            }
+        }
+        return true
+    })
+    /*
+    */
+
+    /*
+    // Number 2^53 境界値
+    a.t(()=>{
+        for (let signed of [false, true]) {
+            for (let bitSize of [53]) {
+                const ix = IntType.get(bitSize, signed);
+                let i = 0;
+                for (let [expected, arg] of getBorderTestCasesN(ix)) {
+                    console.log(`i=${i}`); i++;
+                    if (Number.isSafeInteger(arg)) {
+                        const actual = ix.convert(arg);
+                        console.log(bitSize, signed, expected, arg, actual);
+                        if (expected!==actual) {return false}
+                    } else {
+                        console.log('ELSE');
+                        try {ix.convert(arg)}
+                        catch (err) {if (err.message==='値はNumber.isSafeInteger()のみ有効です。'){continue}else{return false}}
+                        return false
+                    }
+                }
+            }
+        }
+        return true
+    });
+    */
+    a.fin();
+})
+</script>
