@@ -1,0 +1,163 @@
+<meta charset="UTF-8">
+<script src="../../../docs/lib/util/type.js"></script>
+<script src="../../../docs/lib/util/test/assertion.js"></script>
+<script src="int-type.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    const a = new Assertion();
+    a.t(Type.isCls(UintType));
+    a.t(Type.isCls(SintType));
+    for (let cls of [UintType, SintType]) {
+        for (let bitSize of [0,-1,0.1,NaN,undefined,null,'8']) {
+            a.e(TypeError, `bitSizeは0より大きい整数であるべきです。`, ()=>new cls(bitSize))
+        }
+    }
+    a.t(()=>{
+        const bitSize = 8;
+        const u8 = new UintType(bitSize);
+        //return bitSize===u8.bitSize && Math.floor(bitSize/8)===u8.byteSize && Number===u8.type && false===u8._isB && (2**bitSize)===u8.length && 0===u8.min && (2**bitSize-1)===u8.max;
+        return bitSize===u8.bitSize && (bitSize/8)===u8.byteSize && Number===u8.type && false===u8._isB && (2**bitSize)===u8.length && 0===u8.min && (2**bitSize-1)===u8.max;
+    });
+    a.t(()=>{// Number
+        for (let bitSize of [8,16,32,53]) {
+            const ui = new UintType(bitSize);
+            //return bitSize===ui.bitSize && Math.floor(bitSize/8)===ui.byteSize && Number===ui.type && false===ui._isB && (2**bitSize)===ui.length && 0===ui.min && (2**bitSize-1)===ui.max;
+            return bitSize===ui.bitSize && (bitSize/8)===ui.byteSize && Number===ui.type && false===ui._isB && (2**bitSize)===ui.length && 0===ui.min && (2**bitSize-1)===ui.max;
+        }
+    });
+    a.t(()=>{// BigInt
+        for (let bitSize of [54,64,128,256,512,1024,2048,4096]) {
+            const ui = new UintType(bitSize);
+            const R = [bitSize===ui.bitSize, 
+                        //Math.floor(bitSize/8)===ui.byteSize, 
+                        (bitSize/8)===ui.byteSize, 
+                        BigInt===ui.type, 
+                        true===ui._isB, 
+                        (2n**BigInt(bitSize))===ui.length, 
+                        0n===ui.min, 
+                        (2n**BigInt(bitSize)-1n)===ui.max];
+            console.log(R);
+            console.log((bitSize/8), ui.byteSize);
+            return R.every(v=>v);
+            /*
+            console.log(bitSize===ui.bitSize, 
+                        (bitSize/8)===ui.byteSize, 
+                        BigInt===ui.type, 
+                        true===ui._isB, 
+                        (2n**BigInt(bitSize))===ui.length, 
+                        0n===ui.min, 
+                        (2n**BigInt(bitSize)-1n)===ui.max);
+            return bitSize===ui.bitSize, 
+                    (bitSize/8)===ui.byteSize, 
+                    BigInt===ui.type, 
+                    true===ui._isB, 
+                    (2n**BigInt(bitSize))===ui.length, 
+                    0n===ui.min, 
+                    (2n**BigInt(bitSize)-1n)===ui.max;
+            */
+        }
+    });
+    a.t(()=>{
+        const bitSize = 8;
+        const u8 = new UintType(bitSize);
+        const testCases = [
+            [0, 0], [2**bitSize-1, 2**bitSize-1],
+            [u8.min, u8.min], [u8.max, u8.max],
+
+            [2**bitSize-1, -1], [0, 2**bitSize],
+            [u8.max, u8.min-1], [u8.min, u8.max+1],
+
+            [u8.max-1, u8.min-2], [u8.min+1, u8.max+2],
+            [u8.max-2, u8.min-3], [u8.min+2, u8.max+3],
+
+            [u8.min+2, u8.min-(u8.length-2)], [u8.max-2, u8.max+(u8.length-2)],
+            [u8.min+1, u8.min-(u8.length-1)], [u8.max-1, u8.max+(u8.length-1)],
+            [u8.min+0, u8.min-(u8.length+0)], [u8.max-0, u8.max+(u8.length+0)],
+            [u8.max-0, u8.min-(u8.length+1)], [u8.min+0, u8.max+(u8.length+1)],
+            [u8.max-1, u8.min-(u8.length+2)], [u8.min+1, u8.max+(u8.length+2)],
+
+            [u8.min+2, u8.min-(u8.length*2-2)], [u8.max-2, u8.max+(u8.length*2-2)],
+            [u8.min+1, u8.min-(u8.length*2-1)], [u8.max-1, u8.max+(u8.length*2-1)],
+            [u8.min+0, u8.min-(u8.length*2+0)], [u8.max-0, u8.max+(u8.length*2+0)],
+            [u8.max-0, u8.min-(u8.length*2+1)], [u8.min+0, u8.max+(u8.length*2+1)],
+            [u8.max-1, u8.min-(u8.length*2+2)], [u8.min+1, u8.max+(u8.length*2+2)],
+        ];
+        for (let [expected, arg] of testCases) {
+            const actual = u8.convert(arg);
+            console.log(expected, arg, actual);
+            if (expected!==actual) {return false}
+        }
+        return true
+    });
+    for (let v of [Number.MAX_SAFE_INTEGER+1, Number.MIN_SAFE_INTEGER-1]) {
+        a.e(TypeError, `値はNumber.isSafeInteger()のみ有効です。`, ()=>(new UintType(8)).convert(Number.MAX_SAFE_INTEGER+1))
+    }
+
+
+
+
+    // SintType
+    a.t(()=>{
+        const bitSize = 8;
+        const s8 = new SintType(bitSize);
+        return bitSize===s8.bitSize && (bitSize/8)===s8.byteSize && Number===s8.type && false===s8._isB && (2**bitSize)===s8.length && ((-2)**(bitSize-1))===s8.min && (2**(bitSize-1)-1)===s8.max;
+    });
+    a.t(()=>{// Number
+        for (let bitSize of [8,16,32,53]) {
+            const si = new SintType(bitSize);
+            return bitSize===si.bitSize && (bitSize/8)===si.byteSize && Number===si.type && false===si._isB && (2**bitSize)===si.length && ((-2)**(bitSize-1))===si.min && (2**(bitSize-1)-1)===si.max;
+        }
+    });
+    a.t(()=>{// BigInt
+        for (let bitSize of [54,64,128,256,512,1024,2048,4096]) {
+            const ui = new SintType(bitSize);
+            const R = [bitSize===ui.bitSize, 
+                        (bitSize/8)===ui.byteSize, 
+                        BigInt===ui.type, 
+                        true===ui._isB, 
+                        (2n**BigInt(bitSize))===ui.length, 
+                        ((-2n)**(BigInt(bitSize)-1n))===ui.min, 
+                        (2n**(BigInt(bitSize)-1n)-1n)===ui.max];
+            console.log(R);
+            console.log((bitSize/8), ui.byteSize);
+            return R.every(v=>v);
+        }
+    });
+
+    a.t(()=>{
+        const bitSize = 8;
+        const s8 = new SintType(bitSize);
+        const testCases = [
+            [(-2)**(bitSize-1), (-2)**(bitSize-1)], //[2**(bitSize-1)-1, 2**(bitSize-1)-1],
+            /*
+            [s8.min, s8.min], [s8.max, s8.max],
+
+            [2**(bitSize-1)-1, ((-2)**(bitSize-1))-1], [(-2)**(bitSize-1), (2**(bitSize-1)-1)+1],
+            [s8.max, s8.min-1], [s8.min, s8.max+1],
+            [s8.max-1, s8.min-2], [s8.min+1, s8.max+2],
+            [s8.max-2, s8.min-3], [s8.min+2, s8.max+3],
+
+            [s8.min+2, s8.min-(s8.length-2)], [s8.max-2, s8.max+(s8.length-2)],
+            [s8.min+1, s8.min-(s8.length-1)], [s8.max-1, s8.max+(s8.length-1)],
+            [s8.min+0, s8.min-(s8.length+0)], [s8.max-0, s8.max+(s8.length+0)],
+            [s8.max-0, s8.min-(s8.length+1)], [s8.min+0, s8.max+(s8.length+1)],
+            [s8.max-1, s8.min-(s8.length+2)], [s8.min+1, s8.max+(s8.length+2)],
+
+            [s8.min+2, s8.min-(s8.length*2-2)], [s8.max-2, s8.max+(s8.length*2-2)],
+            [s8.min+1, s8.min-(s8.length*2-1)], [s8.max-1, s8.max+(s8.length*2-1)],
+            [s8.min+0, s8.min-(s8.length*2+0)], [s8.max-0, s8.max+(s8.length*2+0)],
+            [s8.max-0, s8.min-(s8.length*2+1)], [s8.min+0, s8.max+(s8.length*2+1)],
+            [s8.max-1, s8.min-(s8.length*2+2)], [s8.min+1, s8.max+(s8.length*2+2)],
+            */
+        ];
+        for (let [expected, arg] of testCases) {
+            const actual = s8.convert(arg);
+            console.log(expected, arg, actual);
+            if (expected!==actual) {return false}
+        }
+        return true
+    });
+
+    a.fin();
+})
+</script>
