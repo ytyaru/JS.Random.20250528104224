@@ -20,9 +20,6 @@ class I64 {// Integer 64bit 8Byte BigInt
 }
 class Xorshift32 {
     constructor(seed) {
-        //this._seed = Seed.of((Number.isSafeInteger(arg)||'bigint'===typeof seed||('string'===typeof seed || seed instanceof String)) ? seed : new Date().getTime());
-        //this._seed = Seed.of((Number.isSafeInteger(seed)||('string'===typeof seed || seed instanceof String)) ? seed : new Date().getTime());
-        //this._seed = Seed.of((Number.isSafeInteger(seed) && 0!==seed||('string'===typeof seed || seed instanceof String)) ? seed : Date.now());
         console.log(seed instanceof Seed)
         this._seed = seed instanceof Seed ? seed : (Seed.of((Number.isSafeInteger(seed) && 0!==seed||('string'===typeof seed || seed instanceof String)) ? seed : Date.now()));
         console.log(this._seed)
@@ -40,21 +37,8 @@ class Xorshift32 {
     *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
     *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
 }
-/*
-class U128Value {
-    get ns() {
-
-    }
-    get a() {
-
-    }
-    get i() {
-
-    }
-}
-*/
-BigInt.fromU32Numbers = function(...u32s) {
-    return u32s.reduce((s,v,i)=>{
+BigInt.fromU32Numbers = function(...u32ns) {
+    return [...u32ns].reduce((s,v,i)=>{
         const F32 = 32n*BigInt(i);
         return s+(BigInt(v)<<F32);
     }, 0n);
@@ -62,64 +46,39 @@ BigInt.fromU32Numbers = function(...u32s) {
 BigInt.toU32Numbers = function(v, length) {
     if ('bigint'!==typeof v){throw new TypeError(`引数vはBigInt型であるべきです。`)}
     if (!(Number.isSafeInteger(length) && 0<length)) {throw new TypeError(`引数lengthはNumber.isSafeInteger()な自然数であるべきです。:${length}`)}
-//    if (0!==(length % 32)) {throw new TypeError(`引数lengthは32で割り切れる数であるべきです。:${length}`)}
-//    const u32s = [...new Array(length)].map((_,f)=>Number((this & (0xFFFFFFFFn << (32n*BigInt(f)))) >> (32n*BigInt(f))));
-    const u32s = [...new Array(length)].map((_,f)=>{
-//        const F = BigInt(f);
-//        const F32 = 32n*F;
+    const u32ns = [...new Array(length)].map((_,f)=>{
         const F32 = 32n*BigInt(f);
-//        console.log(v, F32, (0xFFFFFFFFn << F32));
         return Number((v & (0xFFFFFFFFn << F32)) >> F32);
     });
-    u32s.reverse();
-    return u32s;
+    u32ns.reverse();
+    return u32ns;
 }
 class UintValues {
-    //constructor(...args) {
     constructor(bitSize, ...vals) {
         this._type = IntType.get(bitSize);
-//        this._bitSize = bitSize;
-//        const byteSize = Math.ceil(bitSize/8);
         const length = Math.ceil(bitSize/32);
         this._u32a = new Uint32Array(length);
         const VALS = [...vals];
         if (4===vals.length && VALS.every(a=>Number.isSafeInteger(a) && 0<=a && a<0xFFFFFFFF) && !VALS.every(a=>a===0)) {
             VALS.map((v,i)=>this._u32a[i]=v);
-            //this.x = vals[0]; this.y = vals[1]; this.z = vals[2]; this.w = vals[3];
         }
         else if (1===vals.length && (vals[0] instanceof Uint32Array && 4===vals[0].length)) {
             vals[0].map((v,i)=>this._u32a[i]=v);
-            //this.x = vals[0][0]; this.y = vals[0][1]; this.z = vals[0][2]; this.w = vals[0][3];
         }
         else if (1===vals.length && vals[0] instanceof Seed && bitSize===vals[0].type.bitSize && false===vals[0].type.signed && 0n!==vals[0].i) {
-        //else if (1===vals.length && vals[0] instanceof Seed && 128===vals[0].type.bitSize && false===vals[0].type.signed && 0n!==vals[0].i) {
-//            0xFFFFFFFFn << 32n*3
-//            0xFFFFFFFFn << 32n*2
-//            0xFFFFFFFFn << 32n*1
-//            0xFFFFFFFFn << 32n*0
             const i = vals[0].i;
             console.log(i);
-            /*
-            //const u32s = [...new Array(4)].map((_,f)=>i & (0xFFFFFFFFn << (32n*BigInt(f))));
-            //const u32s = [...new Array(4)].map((_,f)=>Number(i & (0xFFFFFFFFn << (32n*BigInt(f)))));
-            const u32s = [...new Array(4)].map((_,f)=>Number((i & (0xFFFFFFFFn << (32n*BigInt(f)))) >> (32n*BigInt(f))));
-            u32s.reverse();
-            */
-            const u32s = BigInt.toU32Numbers(i,4);
-            this.x = u32s[0]; this.y = u32s[1]; this.z = u32s[2]; this.w = u32s[3];
+            const u32ns = BigInt.toU32Numbers(i,4);
+            //this.x = u32ns[0]; this.y = u32ns[1]; this.z = u32ns[2]; this.w = u32ns[3];
+            u32ns.map((v,i)=>this._u32a[i]=v);
         }
         else {
             console.warn(`指定されたシードは無効なので自動生成します。:`, vals)
-            //const r32 = new Xorshift32();
-            //const [X,Y,Z,W] = [x,y,z,w].map(v=>I32.u2s(Number.isSafeInteger(v) ? v : r32.i));
-            //const [X,Y,Z,W] = [x,y,z,w].map(v=>r32.i);
-//            const [X,Y,Z,W] = [x,y,z,w].map(v=>Math.floor(Math.random()*0x100000000));
-//            if ([X,Y,Z,W].every(v=>v===0)) {X=1}
             let Vs = null;
             do {Vs = [...new Array(4)].map(v=>Math.floor(Math.random()*0x100000000));}
             while (Vs.every(v=>v===0));
-            //this.x = X; this.y = Y; this.z = Z; this.w = W;
-            this.x = Vs[0]; this.y = Vs[1]; this.z = Vs[2]; this.w = Vs[3];
+            //this.x = Vs[0]; this.y = Vs[1]; this.z = Vs[2]; this.w = Vs[3];
+            Vs.map((v,i)=>this._u32a[i]=v);
         }
 
     }
@@ -129,15 +88,19 @@ class UintValues {
         return 53 < this._type.bitSize ? b : Number(b);
     }
     // 単一整数BigInt型
-    get b() {return BigInt.fromU32Numbers(...this._u32s)}
+    get b() {return BigInt.fromU32Numbers(...this._u32a)}
     // 複数u32整数 Number配列
-    get ns() {return BigInt.toU32Numbers(this.b, Math.ceil(this._type.bitSize/32))}
+    get ns() {return this._u32a}
+//    get ns() {return BigInt.toU32Numbers(this.b, Math.ceil(this._type.bitSize/32))}
+//    set ns() {return this._u32a}
     // Uint32Array
     get u32a() {return new Uint32Array(this._u32a)}
 }
 class Xorshift128 {
     constructor(...args){// 1/0/0/0 ~ 4294967295
-//        this._vals = new UintValues(128, ...args);
+        this._v = new UintValues(128, ...args);
+        console.log(this._v)
+        /*
         const ARGS = [...args];
         if (4===args.length && ARGS.every(a=>Number.isSafeInteger(a) && 0<=a && a<0xFFFFFFFF) && !ARGS.every(a=>a===0)) {
             this.x = args[0]; this.y = args[1]; this.z = args[2]; this.w = args[3];
@@ -152,12 +115,6 @@ class Xorshift128 {
 //            0xFFFFFFFFn << 32n*0
             const i = args[0].i;
             console.log(i);
-            /*
-            //const u32s = [...new Array(4)].map((_,f)=>i & (0xFFFFFFFFn << (32n*BigInt(f))));
-            //const u32s = [...new Array(4)].map((_,f)=>Number(i & (0xFFFFFFFFn << (32n*BigInt(f)))));
-            const u32s = [...new Array(4)].map((_,f)=>Number((i & (0xFFFFFFFFn << (32n*BigInt(f)))) >> (32n*BigInt(f))));
-            u32s.reverse();
-            */
             const u32s = BigInt.toU32Numbers(i,4);
             this.x = u32s[0]; this.y = u32s[1]; this.z = u32s[2]; this.w = u32s[3];
         }
@@ -175,15 +132,25 @@ class Xorshift128 {
             this.x = Vs[0]; this.y = Vs[1]; this.z = Vs[2]; this.w = Vs[3];
         }
         console.log('xyzw:', this.x, this.y, this.z, this.w)
+        */
     }
     next(){
+        /*
         let t = this.x^(this.x<<11);
         this.x =this.y, this.y =this.z, this.z =this.w;
         this.w = (this.w^(this.w>>>19))^(t^(t>>>8));
         return I32.s2u(this.w);
+        */
+        let t = this._v.ns[0]^(this._v.ns[0]<<11);
+        this._v.ns[0]=this._v.ns[1]; this._v.ns[1]=this._v.ns[2]; this._v.ns[2]=this._v.ns[3];
+        this._v.ns[3]=(this._v.ns[3]^(this._v.ns[3]>>>19))^(t^(t>>>8));
+        return I32.s2u(this._v.ns[3]);
     }
     get i() {return this.next()}
-    get r() {return this.next() / (0xFFFFFFFF + 1)}
+    //get r() {return this.next() / (0xFFFFFFFF + 1)}
+    //get r() {return this.next() / 0x1_00000000_00000000_00000000_00000000}
+    //get r() {return this.next() / 0x100000000}
+    get r() {return this.next() / 0x100000000}
     *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
     *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
 }
@@ -243,11 +210,14 @@ class Xorshift128p {
         */
 //https://raw.githubusercontent.com/fanatid/xorshift.js/refs/heads/master/lib/xorshift128plus.js
 class Xorshift128p {
-    constructor(...seeds) {//seeds:new Uint32Array(4)
+    constructor(...args) {//seeds:new Uint32Array(4)
+        this._v = new UintValues(128, ...args);
+        /*
         const SEEDS = [...seeds]
         this._seeds = (4===seeds.length && SEEDS.every(s=>Number.isSafeInteger(s) && 0<=s && s<2**32))
             ? SEEDS
             : [...new Array(4)].map(v=>Math.floor(Math.random()*0x100000000));
+        */
         /*
         if (4===seeds.length && SEEDS.every(s=>Number.isSafeInteger(s) && 0<=s && s<2**32)) {
             this._seeds = SEEDS;
