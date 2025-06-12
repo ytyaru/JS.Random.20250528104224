@@ -59,7 +59,7 @@ class UintValues {
         const length = Math.ceil(bitSize/32);
         this._u32a = new Uint32Array(length);
         const VALS = [...vals];
-        if (4===vals.length && VALS.every(a=>Number.isSafeInteger(a) && 0<=a && a<0xFFFFFFFF) && !VALS.every(a=>a===0)) {
+        if (4===vals.length && VALS.every(a=>Number.isSafeInteger(a) && 0<=a && a<=0xFFFFFFFF) && !VALS.every(a=>a===0)) {
             VALS.map((v,i)=>this._u32a[i]=v);
         }
         else if (1===vals.length && (vals[0] instanceof Uint32Array && 4===vals[0].length)) {
@@ -141,13 +141,39 @@ class Xorshift128 {
     *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
     *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
 }
+//https://github.com/fanatid/xorshift.js/
+//https://raw.githubusercontent.com/fanatid/xorshift.js/refs/heads/master/lib/xorshift.js
 //https://raw.githubusercontent.com/fanatid/xorshift.js/refs/heads/master/lib/xorshift128plus.js
 class Xorshift128p {
     constructor(...args) {//seeds:new Uint32Array(4)
         this._v = new UintValues(128, ...args);
     }
     _next() {
-        let [s0H,s0L,s1H,s1L] = this._v.ns;
+        //let [s0H,s0L,s1H,s1L] = this._v.ns;
+        const ns = this._v.ns.map(n=>n>>>0);
+        let [s1H,s1L] = [ns[0],ns[1]];
+        const [s0H,s0L] = [ns[2],ns[3]];
+        this._v.ns[0]=s0H; this._v.ns[1]=s1L;
+
+        s1H ^= ((s1H & 0x000001ff) << 23) | (s1L >>> 9);
+        s1L ^= (s1L & 0x000001ff) << 23;
+        // s[1] = s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26);
+        this._v.ns[2] ^= s1H ^ (s1H >>> 17) ^ (s0H >>> 26);
+        this._v.ns[2] >>>= 0;
+        this._v.ns[3] ^= s1L ^ (((s1H & 0x0001ffff) << 15) | (s1L >>> 17)) ^ (((s0H & 0x03ffffff) << 6) | (s0L >>> 26));
+        this._v.ns[3] >>>= 0;
+        // return s[1] + s0;
+        const t = this._v.ns[3] + s0L;
+        const NS = [
+            (((t / 0x0100000000) | 0) + this._v.ns[2] + s0H) >>> 0,
+            t >>> 0
+        ];
+        return NS.map(n=>I32.s2u(n));
+    }
+    /*
+    _next() {
+        //let [s0H,s0L,s1H,s1L] = this._v.ns;
+        let [s0H,s0L,s1H,s1L] = this._v.ns.map(n=>n>>>0);
         s1H=s0H; s1L=s0L; s0H=s1H; s0L=s1L;
         this._v.ns[0]=s0H; this._v.ns[1]=s1L;
 
@@ -165,6 +191,49 @@ class Xorshift128p {
             t >>> 0
         ];
         return ns.map(n=>I32.s2u(n));
+    }
+    */
+//    get ns() {const ns = this._next(); console.log(ns); return ns}
+    get ns() {return this._next()}
+//    get ns() {return [...new Uint32Array(this._next())]}
+//    get ns() {return this._v.ns}
+    
+    get a() {return new Uint32Array(this._next())}
+    get i() {
+        const u32s = this._next();
+//        console.log(u32s)
+        //const i = BigInt(u32s[0]<<32) + BigInt(u32s[1]);
+        const i = (BigInt(u32s[0])<<32n) + BigInt(u32s[1]);
+//        console.log(u32s, (BigInt(u32s[0])<<32n), BigInt(u32s[0]<<32), BigInt(u32s[1]), i);
+        return i;
+//        return BigInt(u32s[0]<<32) + BigInt(u32s[1]);
+//        return BigInt(u32s[0])<<32n + BigInt(u32s[1]);
+    }
+    // u64の除算で少数にできない！
+    //get r() {return this.i / 0x1_00000000_00000000n}
+    //get r() {return Number(this.i) / 0x1_00000000_00000000}
+    //get r() {return this._v.r}
+//    get r() {const i=this.i; return 'bigint'===typeof i ? i/0x1_00000000_00000000 : i/}
+//    get r() {return this.i/0x1_00000000_00000000n} // BigInt型は除算しても整数しか返さない
+    /*
+    get r() {
+        const I = this.i;
+        const M = I%0x1_00000000_00000000n;
+        console.log(I,M)
+        return this._v.r;
+    }
+    */
+    get r() {
+        const ns = this.ns;
+        const rs = ns.map((n,i)=>{[...new Array(i+1)].map(_=>n/=0x100000000);return n;});
+        const R = rs.reduce((s,v,i)=>s+v < 1 ? s+v : s,0);
+        return R;
+    }
+
+    // ジェネレータ
+    *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
+    *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
+}
         /*
         return [
             (((t / 0x0100000000) | 0) + this._v.ns[2] + s0H) >>> 0,
@@ -190,21 +259,6 @@ class Xorshift128p {
             t >>> 0
         ];
         */
-    }
-    get ns() {return this._next()}
-    get a() {return new Uint32Array(this._next())}
-    get i() {
-        const u32s = this._next();
-        return BigInt(u32s[0]<<32) + BigInt(u32s[1]);
-    }
-    // u64の除算で少数にできない！
-    //get r() {return this.i / 0x1_00000000_00000000n}
-    //get r() {return Number(this.i) / 0x1_00000000_00000000}
-    get r() {return this._v.r}
-    // ジェネレータ
-    *is(n=3) {for(let i=0; i<n; i++){yield this.i}}
-    *rs(n=3) {for(let i=0; i<n; i++){yield this.r}}
-}
 
 window.PRNG = {
     Xorshift32: Xorshift32,

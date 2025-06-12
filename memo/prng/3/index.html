@@ -213,6 +213,7 @@ window.addEventListener('DOMContentLoaded', async(e)=>{
         for (let seed of [0,1,-1,Infinity,-Infinity,NaN,null,undefined]) {
             const R = new PRNG.Xorshift128p(seed);
             const [i, r] = [R.i, R.r];
+            console.log(i, r)
             console.log('bigint'===typeof i , 'number'===typeof r , (0n<=i && i<2n**64n) , (0<=r && r<1))
             //if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))) {return false}
             if (!('bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1))){return false};
@@ -252,15 +253,27 @@ window.addEventListener('DOMContentLoaded', async(e)=>{
         const S = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
         return [...new Array(100)].every(_=>R.i===S.i);
     });
-    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）返さなかった。めっちゃ偏ってる。なんでや……シード値がダメなのか？
     a.t(()=>{
         const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
         const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
         const counts = [0,0,0,0,0,0]; // 各出目の回数
         D6s.map(v=>++counts[v-1]);
         console.log(counts)
+        console.log([...R.rs(10)])
         return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
     });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(); // ランダムなシード値
+        const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        console.log([...R.rs(10)])
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
+
 
 
 
