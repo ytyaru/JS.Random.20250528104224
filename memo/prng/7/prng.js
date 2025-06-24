@@ -223,6 +223,8 @@ class Random {// Number(整数/小数(0≦r<1)), Booleanを返す
         this._prng = prng;
         this._range = range;
         //this._range = new Range(0,99);
+        if (undefined===prng) {this._prng = new PRNG.Xorshift128p()}
+        if (undefined===range) {this._range = new PRNG.Range(1,6)}
     }
     get prng() {return this._prng}
     get range() {return this._range}
@@ -246,15 +248,134 @@ class Random {// Number(整数/小数(0≦r<1)), Booleanを返す
         return {r:r, idx:idx, i:i, b:b};
     }
 }
+class Candidate {
+    constructor(values) {// [w,w,...] / [{i:i, w:w, q:q},...]
+        if (Array.isArray(values)) {
+            if (values.every(v=>Number.isSafeInteger(v) && 0<=v) && !values.every(v=>v===0)) {// weights
+                this._v = values.map((v,i)=>({i:i, w:v}))
+            } 
+            // [{i:i, w:w, q:q},...] i,wは必須。qは有限数にしたい場合のみ保持させる。
+            //else if (values.every(v=>'i w q'.split(' ').every(n=>v.hasOwnProperty(n) && Number.isSafeInteger(v[n])) && 0<=v.w)) {
+            else if (values.every(v=>'i w'.split(' ').every(n=>v.hasOwnProperty(n) && Number.isSafeInteger(v[n])) && 0<=v.w)) {
+                for (let v of values) {// 不正なqを削除（無限にする）
+                    const V = (v.hasOwnProperty('q') ? (Number.isSafeInteger(v.q) && 0<=v.q ? v.q : null) : undefined);
+                    if (null===V) {console.warn(`qが不正値のため削除し無限にします。:{i:${v.i}, w:${v.w}, q:${v.q}}`); delete v.q;}
+                }
+                /*
+                values.map(v=>{
+                    const V = (v.hasOwnProperty('q') ? (Number.isSafeInteger(v.q) ? v.q : null) : null);
+                    if (null===V) {delete v.q}
+                });
+                values.map((v,i)=>{
+                    const V = (v.hasOwnProperty('q') ? (Number.isSafeInteger(v.q) ? v.q : null) : null);
+                    if (null===V) {console.warn(`qが不正値のため削除しました。:{i:${v.i}, w:${v.w}, q:${v.q}}`); delete v.q;}
+                });
+                */
+                this._v = values;
+            }
+        }
+        this._v = values;
+    }
+}
+class Lottery {// 抽選（候補となる配列からランダムに抽出する。無限／有限、割合）
+    constructor(candidates, random) {
+        if (!(random instanceof Random)) {random = new Random(new PRNG.Xorshift128p(), new PRNG.Range(0,1))}
+//    constructor(random, candidates) {
+//        if (!(random instanceof Random)) {throw new TypeError(`第一引数はRandomインスタンスであるべきです。`)}
+        this._random = random;
+//        this._candidates = candidates; // [w,w,...] / [{i:i, w:w, q:q},...]
+        this._candidates = this.#fromCandidates(candidates); // [w,w,...] / [{i:i, w:w, q:q},...]
+    }
+    /*
+    constructor(random, quantity, isFinitie=false) {
+        this._random = random;
+        //[3,1,7,0,-1] [{i:i, w:w, q:q},...]
+        // 1<=w q=0:永遠に出ない q=-1:永遠に出る q<=1:0になるまで出る
+        this._quantity = quantity; 
+        this._isFinitie = !!isFinitie;
+        if (!(random instanceof Random)) {throw new TypeError(`第一引数はRandomインスタンスであるべきです。`)}
+        if (!(Array.isArray(quantity) && quantity.every(q=>Number.isSafeInteger(q) && 0<=q) && !quantity.every(q=>q===0))) {throw new TypeError(`第ニ引数は全要素が正整数の配列であるべきです。その合計値は1以上であるべきです。`)}
+    }
+    */
+    get prng() {return this._prng}
+    get candidates() {return this._candidates}
+//    get quantity() {return this._quantity}
+//    get isFinitie() {return this._isFinitie}
+    get draw() {
+        const Cs = this.#Cs();
+        if (0===Cs.length) {return -1}
+        //const S = this.#quantitySum(weights)
+        const S = this.#weightSum(Cs)
+        //this._random.range.v = [0, Cs.length-1];
+        //this._random.range.v = [0, S-1];
+        const c = this.#c(Cs, S);
+        console.log('c:',c)
+        //if (this._isFinitie) {if(0<this._quantity[c]){this._quantity[c]--} this._quantity[c]--; if(-1)}
+        if (this._candidates[c].hasOwnProperty('q') && 0<this._candidates[c].q) {this._candidates[c].q--}
+        return Cs[c].i;
+    }
+    *draws(N) {
+        if (Number.isSafeInteger(N) && 0<N) {
+            for (let i=0; i<N; i++) {yield this.draw}
+        } else {throw new TypeError(`引数は回数でありNumber.isSafeInteger(N)な自然数のみ有効です。`)}
+    }
+    #c(Cs, S) {// 候補の添字を一つ返す
+        //const V = RndInt.pieces(S); // 0〜S-1
+        this._random.range.v = [0, S-1]; // 0〜S-1
+        const V = this._random.i;
+        console.log(Cs, S, V)
+        for (let i=0; i<Cs.length; i++) {
+            const Q = Cs.slice(0,i+1).reduce((s,v,i)=>s+v.w, 0);
+            if (V < Q) {return i}
+        }
+        throw new Error(`このコードは実行されないはず。もし実行されたら論理エラー。ロジックを組み直すべき。`)
+    }
+    #Cs(){return this._candidates.filter(c=>c.hasOwnProperty('q') && 0===c.q ? false : true);}// Candidations [[i,q],...,[i,q]]
+//    #Cs(){return this._quantity.map((q,i)=>({i:i, q:q})).filter(v=>0<v.q);}// Candidations [[i,q],...,[i,q]]
+//    static #Cs(Ws){return Ws.map((w,i)=>({i:i, w:w})).filter(v=>0<v.w);}// Candidations [[i,w],...,[i,w]]
+    #weightSum(Cs) {
+        //const S = this._quantity.reduce((s,v,i)=>s+v, 0);
+        const S = Cs.reduce((s,c,i)=>s+c.w, 0);
+        if (S<1) {throw new TypeError(`wの合計は1以上になるべきです。`)}
+        return S;
+    }
+    #fromCandidates(values) {// [w,...] / [{i:i, w:w (, q:q)},...]
+        if (Array.isArray(values)) {
+            if (values.every(v=>Number.isSafeInteger(v) && 0<=v) && !values.every(v=>v===0)) {// weights
+                return values.map((v,i)=>({i:i, w:v}))
+            } 
+            // [{i:i, w:w, q:q},...] i,wは必須。qは有限数にしたい場合のみ保持させる。
+            //else if (values.every(v=>'i w q'.split(' ').every(n=>v.hasOwnProperty(n) && Number.isSafeInteger(v[n])) && 0<=v.w)) {
+            else if (values.every(v=>'i w'.split(' ').every(n=>v.hasOwnProperty(n) && Number.isSafeInteger(v[n])) && 0<=v.w) && !values.every(v=>v.w===0)) {
+                values.map((v,i)=>{
+                    const V = (v.hasOwnProperty('q') ? (Number.isSafeInteger(v.q) && 1<=v.q ? v.q : null) : undefined);
+                    if (null===V) {console.warn(`qが不正値のため削除しました。:{i:${v.i}, w:${v.w}, q:${v.q}}`); delete values[i].q;}
+                });
+                const s = new Set(values.map(v=>v.i));
+                if (s.size!==values.length) {throw new TypeError(`iが重複しています。重複しない値を設定してください。`)}
+                return values;
+            }
+        }
+        throw new TypeError(`candidatesは[w,...]か[{i,w(,q)},...]な配列であるべきです。wはweightであり1以上の整数、iはint/indexで0以上の整数、qはquantityで1以上の整数です。qは数量を有限にしたい場合のみ任意で指定します。`)
+    }
+}
 window.I32 = I32;
 window.R32 = R32;
-window.Random = Random;
-window.Range = Range;
-window.Range2 = Range2;
-window.Range3 = Range3;
 window.PRNG = {
     Xorshift32: Xorshift32,
     Xorshift128: Xorshift128,
     Xorshift128p: Xorshift128p,
+    Range: Range,
+    Range2: Range2,
+    Range3: Range3,
+    Random: Random,
+    Lottery: Lottery,
 };
+/*
+window.Range = Range;
+window.Range2 = Range2;
+window.Range3 = Range3;
+window.Random = Random;
+window.Lottery = Lottery;
+*/
 })();

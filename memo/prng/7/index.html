@@ -318,70 +318,118 @@ window.addEventListener('DOMContentLoaded', async(e)=>{
         return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
     });
 
+    // Range
     a.t(()=>{
-        const r = new Range(0,1);
+        const r = new PRNG.Range(0,1);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return 0===r.m && 1===r.M && 2===r.l && 0===r.t && 0===r.v[0] && 1===r.v[1] && 0.5===r.tr;
     });
     a.t(()=>{
-        const r = new Range2(2);
+        const r = new PRNG.Range2(2);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return 0===r.m && 1===r.M && 2===r.l && 0===r.t && 0===r.v[0] && 1===r.v[1] && 0.5===r.tr;
     });
     a.t(()=>{
-        const r = new Range3(3);
+        const r = new PRNG.Range3(3);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return -1===r.m && 1===r.M && 3===r.l && 0===r.t && -1===r.v[0] && 1===r.v[1] && 0.5===r.tr;
     });
-    a.e(TypeError, `vの値は[min,max]のようなNumber.isSafeInteger()な数を二個持つ配列であるべきです。各数の差は1以上あり昇順であるべきです。`, ()=>new Range(1,0))
-    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new Range2(1))
-    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new Range2(3))
-    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new Range3(2))
-    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new Range3(4))
+    a.e(TypeError, `vの値は[min,max]のようなNumber.isSafeInteger()な数を二個持つ配列であるべきです。各数の差は1以上あり昇順であるべきです。`, ()=>new PRNG.Range(1,0))
+    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new PRNG.Range2(1))
+    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new PRNG.Range2(3))
+    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new PRNG.Range3(2))
+    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new PRNG.Range3(4))
 
     a.t(()=>{
-        const r = new Range(3,7);
+        const r = new PRNG.Range(3,7);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return 3===r.m && 7===r.M && 5===r.l && 5===r.t && 3===r.v[0] && 7===r.v[1] && 0.5===r.tr;
     });
     a.t(()=>{
-        const r = new Range(0,99);
+        const r = new PRNG.Range(0,99);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return 0===r.m && 99===r.M && 100===r.l && 49===r.t && 0===r.v[0] && 99===r.v[1] && 0.5===r.tr;
     });
     a.t(()=>{
-        const r = new Range2(100);
+        const r = new PRNG.Range2(100);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return 0===r.m && 99===r.M && 100===r.l && 49===r.t && 0===r.v[0] && 99===r.v[1] && 0.5===r.tr;
     });
     a.t(()=>{
-        const r = new Range3(7);
+        const r = new PRNG.Range3(7);
         console.log(r.m, r.M, r.l, r.t, r.tr)
         return -3===r.m && 3===r.M && 7===r.l && 0===r.t && -3===r.v[0] && 3===r.v[1] && 0.5===r.tr;
     });
 
+    // Random
     a.t(()=>{
         const prng = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
-        const rng = new Range(0,99);
-        const r = new Random(prng, rng);
+        const rng = new PRNG.Range(0,99);
+        const r = new PRNG.Random(prng, rng);
         console.log(r, r.idx, r.r, r.i, r.b)
         return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
     });
     a.t(()=>{
         const prng = new PRNG.Xorshift128(Seed.of('u32b16:FFFFFFFF'));
-        const rng = new Range(0,99);
-        const r = new Random(prng, rng);
+        const rng = new PRNG.Range(0,99);
+        const r = new PRNG.Random(prng, rng);
         console.log(r, r.idx, r.r, r.i, r.b)
         return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
     });
     a.t(()=>{
         const prng = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
-        const rng = new Range(0,99);
-        const r = new Random(prng, rng);
+        const rng = new PRNG.Range(0,99);
+        const r = new PRNG.Random(prng, rng);
         console.log(r, r.idx, r.r, r.i, r.b)
         return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
     });
+    a.t(()=>{
+        const r = new PRNG.Random();
+        console.log(r, r.idx, r.r, r.i, r.b)
+        return 0<=r.idx && r.idx<6 && 0<=r.r && r.r<1 && 1<=r.i && r.i<=6 && 'boolean'===typeof r.b;
+    });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    a.t(()=>{
+        const r = new PRNG.Random();
+//        const R = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const D6s = [...new Array(6000)].map(_=>r.i); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
 
+    // Lottery
+    a.t(()=>{
+        const prng = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const rng = new PRNG.Range(0,99);
+        const r = new PRNG.Random(prng, rng);
+        const c = [6,3,1];
+        const l = new PRNG.Lottery(c, r);
+        console.log(l.draw)
+        const d = l.draw;
+        return 0<=d && d<=c.length-1;
+    });
+    a.t(()=>{
+        const c = [6,3,1];
+        const l = new PRNG.Lottery(c);
+        console.log(l.draw)
+        const d = l.draw;
+        return 0<=d && d<=c.length-1;
+    });
+    // 分布確認（指定した割合に近い数を返すこと）
+    a.t(()=>{
+        const c = [6,3,1];
+        const l = new PRNG.Lottery(c);
+        console.log(l.draw)
+        const d = l.draw;
+        const S = c.reduce((s,v,i)=>s+v,0);
+        const cs = [...l.draws(S*10)];
+        const counts = (new Array(c.length)).fill(0);
+        cs.map(c=>++counts[c]);
+        console.log(counts)
+        return 0<=d && d<=c.length-1 && counts.every((C,i)=>c[i]*10-20<C && C<c[i]*10+20);
+    });
 
 
     a.fin();
