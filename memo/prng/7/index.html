@@ -1,0 +1,367 @@
+<meta charset="UTF-8">
+<script src="../../../docs/lib/util/type.js"></script>
+<script src="../../../docs/lib/util/test/assertion.js"></script>
+<script src="int-type.js"></script>
+<script src="seed.js"></script>
+<script src="prng.js"></script>
+<script>
+window.addEventListener('DOMContentLoaded', async(e)=>{
+    const a = new Assertion();
+    a.t(Type.isCls(IntType));
+    a.t(Type.isCls(Seed));
+    a.t(Type.isObj(PRNG));
+    a.t('Xorshift32' in PRNG);
+    a.t('Xorshift128' in PRNG);
+    a.t('Xorshift128p' in PRNG);
+    a.t(()=>{
+        console.log(R32.fromN(-1))
+        console.log(R32.fromN(2**32-1))
+        console.log(R32.fromN(2**32+0))
+        console.log(R32.fromN(2**32+1))
+        console.log(R32.fromN(1))
+        console.log(((-2)**31-1))
+        console.log(((-2)**31-1)+0x100000000)
+        console.log((((-2)**31-1)+0x100000000)/0x100000000)
+        console.log(0x100000000-((-2)**31-1)*-1+1)
+        console.log(2**31-1)
+        console.log(R32.fromN((-2)**31))
+        console.log(R32.fromN((-2)**31-1))
+        console.log(R32.fromN((-2)**32))
+        console.log(R32.fromN(2**32+1))
+        return 0===R32.fromN(0) && 0.9<R32.fromN(-1) && R32.fromN(2**32)<0.1
+            && 0.9<R32.fromN((-2)**32) && R32.fromN(2**32+1)<0.1;
+    });
+    /*
+    // I32
+    a.t(()=>{
+        console.log(2**32-1, I32.u2s(-1))
+        return 0===I32.u2s(0)
+            && 1===I32.u2s(1)
+            && 2===I32.u2s(2)
+            && 2**32-1===I32.u2s(-1)
+            && 2**31-1===I32.u2s(2**31-1)
+            && (-2)**31===I32.u2s(2**31)
+            && (-2)**31+1===I32.u2s(2**31+1)
+            && (-2)**31+2===I32.u2s(2**31+2)
+        ;
+    });
+    */
+
+    // Seed.of(IntType) 型は指定するが値はランダム。
+    a.t(()=>{
+        const S = Seed.of(IntType.get(32,false));
+        console.log(S)
+        const [i, r] = [S.i, S.r];
+        //console.log(S.s, S.toString(16), `${S.type.bitTypeName}b${S._base}${S._isBase64URL ? 'u' : ''}:${S.s}`)
+        console.log(S.typeName, S.s, S.v)
+        console.log(S.toString(16), S.typeName)
+        return 0<=i && i<=0xFFFFFFFF && 64===S._base && true===S._isBase64URL;
+    });
+
+    // Xorshift32
+    a.t(()=>{
+        const R = new PRNG.Xorshift32();
+        console.log(R._seed);
+        console.log(R._s);
+        const [i, r] = [R.i, R.r];
+        console.log((0<=i, i<2**32), (0<=r, r<1), [i,r].every(v=>'number'===typeof v));
+        console.log(r,i);
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    })
+    // 不正なNumber値なら現時刻をシードにする
+    a.t(()=>{
+        for (let seed of [0, 2**32, -1, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER+1, Number.MIN_SAFE_INTEGER-1, Infinity, -Infinity, NaN, null, undefined]) {
+            const R = new PRNG.Xorshift32();
+            const [i, r] = [R.i, R.r];
+            if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))){return false}
+        }
+        return true
+    });
+    // 非u32なSeedインスタンス
+    for (let str of ['s32b16:FFFFFFFF', 'u64b16:FFFFFFFFFFFFFFFF', 'u16b16:FFFF']) {
+        a.e(TypeError, `シードは値が非0かつ型が32bitのunsignedでありNumber型を返すIntTypeインスタンスであるべきです。例えばIntType.get('u32b16:FFFFFFFF')等です。`, ()=>new PRNG.Xorshift32(Seed.of(str)));
+    }
+    // u32なSeedインスタンス
+    a.t(()=>{
+        const R = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const [i, r] = [R.i, R.r];
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    });
+    // 無作為性確認（隣り合うSeed値でも異なる値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFE'));
+        const S = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const rs = [...R.is(3)];
+        const ss = [...S.is(3)];
+        console.log(rs);
+        console.log(ss);
+        return !rs.every((r,i)=>r===ss[i]);
+    })
+    // 可逆性確認（同じシード値なら毎回同じ値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const S = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        return [...new Array(100)].every(_=>R.i===S.i);
+    });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
+
+    // Xorshift128
+    a.t(()=>{
+        const R = new PRNG.Xorshift128();
+        console.log(R._seed);
+        console.log(R._s);
+        const [i, r] = [R.i, R.r];
+        console.log((0<=i, i<2**32), (0<=r, r<1), [i,r].every(v=>'number'===typeof v));
+        console.log(r,i);
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    })
+    // u32なNumber型が4つ
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(1,0,0,0);
+        const [i, r] = [R.i, R.r];
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    });
+    // Uint32Array(4)が1つ
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(new Uint32Array([1,0,0,0]));
+        const [i, r] = [R.i, R.r];
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    });
+    // Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const [i, r] = [R.i, R.r];
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    });
+    a.t(()=>{// シードの型がNumber4個とUint32Array(4)とu128なSeedで値が同じなら同じ結果を返すことを確認する
+        const N = new PRNG.Xorshift128(1,0,0,0);
+        const A = new PRNG.Xorshift128(new Uint32Array([1,0,0,0]));
+        //const S = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const S = new PRNG.Xorshift128(Seed.of('u128b16:00000001000000000000000000000000'));
+        //return [...new Array(100)].every(_=>N.i===A.i);
+        //return [...new Array(100)].every(_=>{const [n,a]=[N.i,A.i];console.log(n,a);return n===a});
+        //return [...new Array(100)].every(_=>{const [n,a,s]=[N.i,A.i,S.i];console.log(n,a,s);return n===a && n===s});
+        return [...new Array(100)].every(_=>{const [n,a,s]=[N.i,A.i,S.i];return n===a && n===s});
+    });
+    // 不正な引数の時は自動でシードを生成する
+    a.t(()=>{
+        for (let seed of [0,1,-1,Infinity,-Infinity,NaN,null,undefined]) {
+            const R = new PRNG.Xorshift128(seed);
+            const [i, r] = [R.i, R.r];
+            if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))) {return false}
+        }
+        return true
+    });
+    // 非u128なSeedインスタンス
+    a.t(()=>{
+        for (let str of ['s128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', 'u64b16:FFFFFFFFFFFFFFFF', 'u256b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF']) {
+            const R = new PRNG.Xorshift128(Seed.of(str));
+            const [i, r] = [R.i, R.r];
+            if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))) {return false}
+        }
+        return true
+    });
+    // u128なSeedインスタンス
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const [i, r] = [R.i, R.r];
+        return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+    });
+    // 無作為性確認（隣り合うSeed値でも異なる値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE'));
+        const S = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const rs = [...R.is(3)];
+        const ss = [...S.is(3)];
+        console.log(rs);
+        console.log(ss);
+        return !rs.every((r,i)=>r===ss[i]);
+    })
+    // 可逆性確認（同じシード値なら毎回同じ値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const S = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        return [...new Array(100)].every(_=>R.i===S.i);
+    });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
+
+
+
+
+
+
+    // Xorshift128p
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p();
+        console.log(R._seed);
+        console.log(R._s);
+        const [i, r] = [R.i, R.r];
+        console.log(i,r);
+//        console.log((0<=i, i<2**32), (0<=r, r<1), [i,r].every(v=>'bigint'===typeof v));
+        console.log((0<=i, i<2**32), (0<=r, r<1), 'bigint'===typeof i , 'number'===typeof r);
+        console.log(r,i);
+        //return (0<=i && i<2**32) && (0<=r && r<1) && 'bigint'===typeof i && 'number'===typeof r;
+        return 'bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1);
+    })
+    // u32なNumber型が4つ
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(1,0,0,0);
+        const [i, r] = [R.i, R.r];
+        //return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+        return 'bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1);
+    });
+    // Uint32Array(4)が1つ
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(new Uint32Array([1,0,0,0]));
+        const [i, r] = [R.i, R.r];
+        //return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+        return 'bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1);
+    });
+    // Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF')
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const [i, r] = [R.i, R.r];
+        console.log(r)
+        console.log('bigint'===typeof i , 'number'===typeof r , (0n<=i && i<2n**64n) , (0<=r && r<1))
+        //return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+        return 'bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1);
+    });
+    a.t(()=>{// シードの型がNumber4個とUint32Array(4)とu128なSeedで値が同じなら同じ結果を返すことを確認する
+        const N = new PRNG.Xorshift128p(1,0,0,0);
+        const A = new PRNG.Xorshift128p(new Uint32Array([1,0,0,0]));
+        //const S = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const S = new PRNG.Xorshift128p(Seed.of('u128b16:00000001000000000000000000000000'));
+        //return [...new Array(100)].every(_=>N.i===A.i);
+        //return [...new Array(100)].every(_=>{const [n,a]=[N.i,A.i];console.log(n,a);return n===a});
+        //return [...new Array(100)].every(_=>{const [n,a,s]=[N.i,A.i,S.i];console.log(n,a,s);return n===a && n===s});
+        return [...new Array(100)].every(_=>{const [n,a,s]=[N.i,A.i,S.i];return n===a && n===s});
+    });
+    // 不正な引数の時は自動でシードを生成する
+    a.t(()=>{
+        for (let seed of [0,1,-1,Infinity,-Infinity,NaN,null,undefined]) {
+            const R = new PRNG.Xorshift128p(seed);
+            const [i, r] = [R.i, R.r];
+            console.log(i, r)
+            console.log('bigint'===typeof i , 'number'===typeof r , (0n<=i && i<2n**64n) , (0<=r && r<1))
+            //if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))) {return false}
+            if (!('bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1))){return false};
+        }
+        return true
+    });
+    // 非u128なSeedインスタンス
+    a.t(()=>{
+        for (let str of ['s128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF', 'u64b16:FFFFFFFFFFFFFFFF', 'u256b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF']) {
+            const R = new PRNG.Xorshift128p(Seed.of(str));
+            const [i, r] = [R.i, R.r];
+            //if (!((0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v))) {return false}
+            if (!('bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1))){return false};
+        }
+        return true
+    });
+    // u128なSeedインスタンス
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const [i, r] = [R.i, R.r];
+        //return (0<=i && i<2**32) && (0<=r && r<1) && [i,r].every(v=>'number'===typeof v);
+        return 'bigint'===typeof i && 'number'===typeof r && (0n<=i && i<2n**64n) && (0<=r && r<1);
+    });
+    // 無作為性確認（隣り合うSeed値でも異なる値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE'));
+        const S = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const rs = [...R.is(3)];
+        const ss = [...S.is(3)];
+        console.log(rs);
+        console.log(ss);
+        return !rs.every((r,i)=>r===ss[i]);
+    })
+    // 可逆性確認（同じシード値なら毎回同じ値を返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const S = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        return [...new Array(100)].every(_=>R.i===S.i);
+    });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）返さなかった。めっちゃ偏ってる。なんでや……シード値がダメなのか？
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        console.log([...R.rs(10)])
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
+    // 一様分布確認（どの数もほぼ同じ確率で返すこと）
+    a.t(()=>{
+        const R = new PRNG.Xorshift128p(); // ランダムなシード値
+        const D6s = [...new Array(6000)].map(_=>Math.floor(R.r * 6)+1); // 1〜6のどれかを6000回出す（サイコロの出目を再現する）
+        const counts = [0,0,0,0,0,0]; // 各出目の回数
+        D6s.map(v=>++counts[v-1]);
+        console.log(counts)
+        console.log([...R.rs(10)])
+        return counts.every(c=>1000-200<c && c<1000+200); // どの目も大体1000回程度である
+    });
+
+    a.t(()=>{
+        const r = new Range(0,1);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return 0===r.m && 1===r.M && 2===r.l && 0===r.t && 0===r.v[0] && 1===r.v[1] && 0.5===r.tr;
+    });
+    a.t(()=>{
+        const r = new Range2(2);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return 0===r.m && 1===r.M && 2===r.l && 0===r.t && 0===r.v[0] && 1===r.v[1] && 0.5===r.tr;
+    });
+    a.t(()=>{
+        const r = new Range3(3);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return -1===r.m && 1===r.M && 3===r.l && 0===r.t && -1===r.v[0] && 1===r.v[1] && 0.5===r.tr;
+    });
+    a.e(TypeError, `vの値は[min,max]のようなNumber.isSafeInteger()な数を二個持つ配列であるべきです。各数の差は1以上あり昇順であるべきです。`, ()=>new Range(1,0))
+    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new Range2(1))
+    a.e(TypeError, `lengthは必ず2で割り切れる偶数の正数であるべきです。`, ()=>new Range2(3))
+    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new Range3(2))
+    a.e(TypeError, `lengthは必ず2で割り切れない奇数の正数であるべきです。`, ()=>new Range3(4))
+
+    a.t(()=>{
+        const r = new Range(3,7);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return 3===r.m && 7===r.M && 5===r.l && 5===r.t && 3===r.v[0] && 7===r.v[1] && 0.5===r.tr;
+    });
+    a.t(()=>{
+        const r = new Range(0,99);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return 0===r.m && 99===r.M && 100===r.l && 49===r.t && 0===r.v[0] && 99===r.v[1] && 0.5===r.tr;
+    });
+    a.t(()=>{
+        const r = new Range2(100);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return 0===r.m && 99===r.M && 100===r.l && 49===r.t && 0===r.v[0] && 99===r.v[1] && 0.5===r.tr;
+    });
+    a.t(()=>{
+        const r = new Range3(7);
+        console.log(r.m, r.M, r.l, r.t, r.tr)
+        return -3===r.m && 3===r.M && 7===r.l && 0===r.t && -3===r.v[0] && 3===r.v[1] && 0.5===r.tr;
+    });
+
+
+
+    a.fin();
+})
+</script>
