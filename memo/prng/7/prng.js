@@ -201,7 +201,7 @@ class Range {// 整数範囲。値間の差は必ず1で連続する。
 //             if (this.isValid(v) && 0<=i) {return this.m + (i % this.l)}
 //        else if (this.isValid(v) && i<0) {return this.M + (i % this.l)}
 //        if (this.isValid(v)) {return  0<=i ? (this.m + (i % this.l)) : (this.M + (i % this.l))}
-        if (this.isValid(v)) {return (0<=i ? this.m : this.M) + (i % this.l)}
+        if (this.isValid(i)) {return (0<=i ? this.m : this.M) + (i % this.l)}
         else{throw new TypeError(`iは0〜${this.l-1}迄の整数または負数であるべきです。`)}
     }
     isValid(v) {if(Number.isSafeInteger(v)){return true}else{throw new TypeError(`Number.isSafeInteger(v)であるべきです。`)}}
@@ -238,6 +238,13 @@ class Random {// Number(整数/小数(0≦r<1)), Booleanを返す
 //        return this._prng.r
 //    }
     get b() {return this.r <= this._range.tr}//false/true
+    get v() {
+        const r = this._prng.r;
+        const idx = Math.floor(r * this._range.l);
+        const i = this._range.fromIndex(idx);
+        const b = r <= this._range.tr;
+        return {r:r, idx:idx, i:i, b:b};
+    }
 }
 window.I32 = I32;
 window.R32 = R32;

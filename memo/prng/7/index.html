@@ -360,6 +360,28 @@ window.addEventListener('DOMContentLoaded', async(e)=>{
         return -3===r.m && 3===r.M && 7===r.l && 0===r.t && -3===r.v[0] && 3===r.v[1] && 0.5===r.tr;
     });
 
+    a.t(()=>{
+        const prng = new PRNG.Xorshift32(Seed.of('u32b16:FFFFFFFF'));
+        const rng = new Range(0,99);
+        const r = new Random(prng, rng);
+        console.log(r, r.idx, r.r, r.i, r.b)
+        return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
+    });
+    a.t(()=>{
+        const prng = new PRNG.Xorshift128(Seed.of('u32b16:FFFFFFFF'));
+        const rng = new Range(0,99);
+        const r = new Random(prng, rng);
+        console.log(r, r.idx, r.r, r.i, r.b)
+        return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
+    });
+    a.t(()=>{
+        const prng = new PRNG.Xorshift128p(Seed.of('u128b16:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'));
+        const rng = new Range(0,99);
+        const r = new Random(prng, rng);
+        console.log(r, r.idx, r.r, r.i, r.b)
+        return prng===r.prng && rng===r.range && 0<=r.idx && r.idx<rng.l && 0<=r.r && r.r<1 && rng.m<=r.i && r.i<=rng.M && 'boolean'===typeof r.b;
+    });
+
 
 
     a.fin();
