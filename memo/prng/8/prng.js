@@ -228,6 +228,17 @@ class Xorshift128p extends Prng {
 // new Range(-100) -50..0..49
 // new Range(-101) -50..0..50
 class Range {// 整数範囲。値間の差は必ず1で連続する。
+    static fromLength(length) {
+        if (Number.isSafeInteger(length)) {
+            if (1<length) {return new Range(0, length-1)}
+            else if (length<-1){
+                const H = Math.floor(length/2);
+                if (0===Math.abs(length%2)) {return new Range(H, (H*-1)-1)}
+                else {return new Range(H, (H*-1), 0)} // 奇数の場合、真偽判定時にどちらか一方に偏る
+            }
+        }
+        throw new TypeError(`引数はNumber.isSafeInteger()で2以上か-2以下の整数であるべきです。正数なら0〜引数-1迄、負数で奇数なら0を中点とし0を除外した各数を正数と負数が同数になるような範囲にします。負数で偶数なら0を正数として扱い半数にします。`)
+    }
     constructor(min, max, threshold) {
         this.v = [min,max];
         if (threshold) {this.t = threshold} else {this.tr = 0.5}
@@ -288,6 +299,20 @@ class Range3 extends Range {// lengthが奇数であり必ず中点がゼロで�
         super(Math.floor(length/2)*-1,Math.floor(length/2),0);
     }
 }
+/*
+thretholds = [{r:0.5, v:4, s:['失敗','成功']},{r:0.1, v:0, s:'致命的失敗'},{r:0.9, v:9, s:'決定的成功'}];
+    0.1: '致命的失敗',
+    ...
+    0.4: '失敗'
+    0.5: '成功'
+    ...
+    0.9: '決定的成功'
+
+2 boolean(false/true)
+3 int(-1,0,+1)         // 0の解釈: 引き分け(再度挑戦) / 無効(挑戦自体が無かった事になる。挑戦したのに成功も失敗もしなかった事に)
+4 int(-2,-1,+1,+2)     // ±2の解釈: 成否の強化版
+5 int(-2,-1,0,+1,+2)
+*/
 class Randomable {// Number(整数(0〜length-1 / min〜max)/小数(0≦r<1)), Booleanを返す
     constructor(range) {
         this._range = range instanceof Range ? range : new Range(1,6);
